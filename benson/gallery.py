@@ -2,9 +2,7 @@ from benson import ImputationGrid
 from benson.magic import *
 
 from sklearn.model_selection import ParameterGrid
-from sklearn.linear_model import BayesianRidge
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+
 
 class GridGallery:
     """
@@ -40,15 +38,17 @@ class GridGallery:
                 ),
             ]
         )
+    
     }
+    
 
     @classmethod
     def get(cls, name: str) -> ParameterGrid:
         """Retrieve a predefined parameter grid by name."""
         return cls._grids.get(name, cls._grids["default"])
     
-
-
+    
+    
 class MagicGallery:
     """
     Stores predefined magic configurations for fallback and curated 'gallery' options.
