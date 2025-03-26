@@ -1,6 +1,6 @@
 import importlib
 import warnings
-from typing import List, Tuple
+from typing import List, Tuple,Any
 
 import numpy as np
 import pandas as pd
@@ -10,10 +10,9 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from benson import ImputationGrid
-from benson.gallery import GridGallery, MagicGallery
+from benson.gallery import GridGallery, MagicGallery, ProcessingGallery
 from benson.magic import Magic
 import benson.magic as METHODS
 
@@ -21,9 +20,26 @@ class Phil:
     """
     Phil is an advanced data imputation tool that combines scikit-learn's IterativeImputer 
     with topological methods to generate and analyze multiple versions of a dataset.
-    
+
     This class allows users to impute missing data using various imputation techniques, 
-    generate representations of imputed datasets, and select the most representative version.
+    generate representations of imputed datasets, and democratically select a representative version.
+
+    Attributes
+    ----------
+    config : dict
+        Configuration for the chosen magic method.
+    magic : str
+        Topological data analysis method to use.
+    samples : int
+        Number of imputations to sample from the parameter grid.
+    param_grid : str
+        Imputation parameter grid identifier or configuration.
+    random_state : int or None
+        Seed for reproducibility.
+    representations : list
+        List to store representations generated during imputation.
+    magic_descriptors : list
+        List to store descriptors for the chosen magic method.
     """
 
     def __init__(self, samples: int = 30, param_grid: str = "default", magic: str = "ECT", config=None, random_state=None):
@@ -65,7 +81,7 @@ class Phil:
         self.representations = []
         self.magic_descriptors = []
     
-    def impute(self, df: pd.DataFrame, max_iter: int = 10) -> List[pd.DataFrame]:
+    def impute(self, df: pd.DataFrame, max_iter: int = 10) -> List[np.ndarray]:
         """
             Parameters
             ----------
@@ -85,11 +101,13 @@ class Phil:
             pipeline, creates multiple imputers with different parameter settings, selects the
             most appropriate imputations, and applies them to the input DataFrame.
         """
+        if df.isnull().sum().sum() == 0:
+            raise ValueError("No missing values found in the input DataFrame.")
         categorical_columns, numerical_columns = self._identify_column_types(df)
-        preprocessor = self._configure_preprocessor(categorical_columns, numerical_columns)
+        preprocessor = self._configure_preprocessor("default",categorical_columns, numerical_columns)
         imputers = self._create_imputers(preprocessor, max_iter)
-        selected_imputers = self._select_imputations(imputers)
-        return self._apply_imputations(df, selected_imputers)
+        self.selected_imputers = self._select_imputations(imputers)
+        return self._apply_imputations(df, self.selected_imputers)
 
     @staticmethod
     def _identify_column_types(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
@@ -148,7 +166,8 @@ class Phil:
                 imputers.append(self._build_pipeline(preprocessor, estimator, max_iter))
         return imputers
 
-    def _import_model(self, module: str, method: str):
+    @staticmethod
+    def _import_model(module: str, method: str):
         """Dynamically imports a model from a specified module."""
         imported_module = importlib.import_module(module)
         return getattr(imported_module, method)
@@ -166,40 +185,54 @@ class Phil:
         selected_idxs = np.random.choice(range(len(imputers)), min(self.samples, len(imputers)), replace=False)
         return [imputers[idx] for idx in selected_idxs]
 
-    def _apply_imputations(self, df: pd.DataFrame, imputers: List[Pipeline]) -> List[pd.DataFrame]:
+    def _apply_imputations(self, df: pd.DataFrame, imputers: List[Pipeline]) -> List[np.ndarray]:
         """Applies imputers to the dataset."""
+        imputations = []
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=ConvergenceWarning)
-            return [pd.DataFrame(imputer.fit_transform(df), columns=df.columns) for imputer in imputers]
+            for imputer in imputers:
+                imputer.fit(df)
+                imputations.append(imputer.transform(df))
+            return imputations
 
     def generate_descriptors(self) -> List[np.ndarray]:
         """Generates topological descriptors for imputed datasets."""
-        return [self.magic.generate(imputed_df.values) for imputed_df in self.representations]
+        return [self.magic.generate(imputed_df) for imputed_df in self.representations]
 
     def fit_transform(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
-        """
-        Perform imputation, generate feature representations, and select the most representative dataset.
-        Parameters
-        ----------
-        df : pandas.DataFrame
-            Input DataFrame containing missing values to be imputed.
-        max_iter : int, optional
-            Maximum number of iterations for the imputation process (default is 5).
-        Returns
-        -------
-        pandas.DataFrame
-            The best-imputed DataFrame selected based on generated descriptors.
-        Notes
-        -----
-        This method performs the following steps:
-        1. Imputes missing values in the input DataFrame.
-        2. Generates feature representations (magic descriptors).
-        3. Selects the most representative dataset based on the descriptors.
-        """
         self.representations = self.impute(df, max_iter)
         self.magic_descriptors = self.generate_descriptors()
         self.closest_index = self._select_representative(self.magic_descriptors)
-        return self.representations[self.closest_index]
+        X = self.representations[self.closest_index]
+        preprocessor = self.selected_imputers[self.closest_index].named_steps.get("preprocessor")
+        if preprocessor is None:
+            raise ValueError("Preprocessing step ('preprocessor') not found in the pipeline.")
+        X_inverse = self._inverse_preprocessing(preprocessor, X, df.columns)
+        return pd.DataFrame(X_inverse, columns=df.columns)
+
+    @classmethod
+    def _inverse_preprocessing(cls, preprocessor: ColumnTransformer, X: np.ndarray, original_columns: List[str]) -> np.ndarray:
+        X_inverse = X.copy()
+        for name, transformer, columns in preprocessor.transformers:
+            if not hasattr(transformer, "inverse_transform"):
+                continue
+            original_columns_list = list(original_columns)
+            col_indices = [original_columns_list.index(col) for col in columns if col in original_columns_list]
+            if not col_indices:
+                continue
+            if "num" in name:
+                X_inverse[:, col_indices] = cls._inverse_numerical_transform(X[:, col_indices], transformer)
+            elif "cat" in name:
+                X_inverse[:, col_indices] = cls._inverse_categorical_transform(X[:, col_indices], transformer)
+        return X_inverse
+
+    @staticmethod
+    def _inverse_numerical_transform(X_transformed: np.ndarray, transformer: Any) -> np.ndarray:
+        return transformer.inverse_transform(X_transformed) if hasattr(transformer, "inverse_transform") else X_transformed
+
+    @staticmethod
+    def _inverse_categorical_transform(X_transformed: np.ndarray, transformer: Any) -> np.ndarray:
+        return transformer.inverse_transform(X_transformed) if hasattr(transformer, "inverse_transform") else X_transformed
 
     @staticmethod
     def _select_representative(descriptors: List[np.ndarray]) -> int:
@@ -227,10 +260,29 @@ class Phil:
         raise ValueError("Invalid parameter grid type.")
     
     @staticmethod
-    def _configure_preprocessor(categorical_columns: List[str], numerical_columns: List[str]) -> ColumnTransformer:
+    def _configure_preprocessor(strategy: str, categorical_columns: List[str], numerical_columns: List[str]) -> ColumnTransformer:
         """Configures the preprocessing pipeline."""
-        return ColumnTransformer([
-            ('num', StandardScaler(), numerical_columns),
-            ('cat', OneHotEncoder(), categorical_columns)
-        ])
+        strategy = ProcessingGallery.get(strategy)
+        transformers: List[Tuple[str, Any, List[str]]] = []
+
+        for key, preprocessing_config in strategy.items():
+            try:
+                model = Phil._import_model(preprocessing_config.module, preprocessing_config.method)
+            except (ImportError, AttributeError) as e:
+                raise RuntimeError(f"Failed to import model {preprocessing_config.method} from module {preprocessing_config.module}: {e}")
+            
+            transformer = model(**preprocessing_config.params)
+
+            # Determine column type and only add transformer if columns are not empty
+            if key == "num" and len(numerical_columns) > 0:
+                transformers.append((key, transformer, numerical_columns))
+            elif key == "cat" and len(categorical_columns) > 0:
+                transformers.append((key, transformer, categorical_columns))
+
+        return ColumnTransformer(transformers)
+            
+            
+    
+    
+    
     
