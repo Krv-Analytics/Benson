@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .vscode/settings.json
+.codiumai.toml
 # C extensions
 *.so
 
