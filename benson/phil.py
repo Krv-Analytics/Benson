@@ -133,7 +133,8 @@ class Phil:
             (['col2'], ['col1', 'col3'])
         """
         categorical_columns = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        numerical_columns = df.select_dtypes(include=['number']).columns.tolist()
+        numerical_columns = df.select_dtypes(include=['number', 'bool']).columns.tolist()
+        
         return categorical_columns, numerical_columns
 
     def _create_imputers(self, preprocessor: ColumnTransformer, max_iter: int) -> List[Pipeline]:
@@ -204,35 +205,10 @@ class Phil:
         self.magic_descriptors = self.generate_descriptors()
         self.closest_index = self._select_representative(self.magic_descriptors)
         X = self.representations[self.closest_index]
-        preprocessor = self.selected_imputers[self.closest_index].named_steps.get("preprocessor")
-        if preprocessor is None:
-            raise ValueError("Preprocessing step ('preprocessor') not found in the pipeline.")
-        X_inverse = self._inverse_preprocessing(preprocessor, X, df.columns)
-        return pd.DataFrame(X_inverse, columns=df.columns)
+        #get imputed column labels from Pipeline
+        imputed_columns = self.selected_imputers[self.closest_index].named_steps['imputer'].imputed_columns_
+        return pd.DataFrame(X, columns=imputed_columns)
 
-    @classmethod
-    def _inverse_preprocessing(cls, preprocessor: ColumnTransformer, X: np.ndarray, original_columns: List[str]) -> np.ndarray:
-        X_inverse = X.copy()
-        for name, transformer, columns in preprocessor.transformers:
-            if not hasattr(transformer, "inverse_transform"):
-                continue
-            original_columns_list = list(original_columns)
-            col_indices = [original_columns_list.index(col) for col in columns if col in original_columns_list]
-            if not col_indices:
-                continue
-            if "num" in name:
-                X_inverse[:, col_indices] = cls._inverse_numerical_transform(X[:, col_indices], transformer)
-            elif "cat" in name:
-                X_inverse[:, col_indices] = cls._inverse_categorical_transform(X[:, col_indices], transformer)
-        return X_inverse
-
-    @staticmethod
-    def _inverse_numerical_transform(X_transformed: np.ndarray, transformer: Any) -> np.ndarray:
-        return transformer.inverse_transform(X_transformed) if hasattr(transformer, "inverse_transform") else X_transformed
-
-    @staticmethod
-    def _inverse_categorical_transform(X_transformed: np.ndarray, transformer: Any) -> np.ndarray:
-        return transformer.inverse_transform(X_transformed) if hasattr(transformer, "inverse_transform") else X_transformed
 
     @staticmethod
     def _select_representative(descriptors: List[np.ndarray]) -> int:
