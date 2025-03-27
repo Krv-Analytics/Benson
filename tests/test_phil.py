@@ -184,7 +184,8 @@ class TestPhil:
         phil.impute(df)
 
         mock_identify.assert_called_once_with(df)
-        # Handles the case when samples is larger than the number of available imputers
+    
+    # Handles the case when samples is larger than the number of available imputers
     def test_impute_samples_larger_than_imputers(self, mocker):
         # Arrange
         import pandas as pd
@@ -221,82 +222,489 @@ class TestPhil:
         mock_select.assert_called_once()
         mock_apply.assert_called_once()
         
-    
-    
-    def test_inverse_transform_numerical_columns(self, mocker):
-        # Setup
+    # Successfully imputes missing values and returns a DataFrame with imputed values
+    def test_fit_transform_returns_imputed_dataframe(self, mocker):
+        # Arrange
+        import pandas as pd
         import numpy as np
         from benson.phil import Phil
-        
-        mock_transformer = mocker.Mock()
-        mock_transformer.inverse_transform.return_value = np.array([[10.0, 20.0], [30.0, 40.0]])
-    
-        preprocessor = mocker.Mock()
-        preprocessor.transformers = [('num_transformer', mock_transformer, ['col1', 'col2'])]
-    
-        X = np.array([[1.0, 2.0], [3.0, 4.0]])
-        original_columns = ['col1', 'col2']
-    
-        # Execute
-        from benson.phil import Phil
-        result = Phil._inverse_preprocessing(preprocessor, X, original_columns)
-    
-        # Assert
-        # Ensure the mock was called with the correct arguments
-        called_args, _ = mock_transformer.inverse_transform.call_args
-        np.testing.assert_array_equal(called_args[0], X)
-        np.testing.assert_array_equal(result, np.array([[10.0, 20.0], [30.0, 40.0]]))
-        
-    def test_inverse_transform_categorical_columns_with_numerical_output(self, mocker):
-        # Setup
-        import numpy as np
-        from benson.phil import Phil
-        
-        mock_transformer = mocker.Mock()
-        mock_transformer.inverse_transform.return_value = np.array([[0, 1], [2, 3]])
 
-        preprocessor = mocker.Mock()
-        preprocessor.transformers = [('cat_transformer', mock_transformer, ['col1', 'col2'])]
+        # Create a test dataframe with missing values
+        df = pd.DataFrame({
+            'A': [1, 2, np.nan, 4],
+            'B': [5, np.nan, 7, 8]
+        })
 
-        X = np.array([[0, 1], [2, 3]])
-        original_columns = ['col1', 'col2']
+        # Mock the necessary methods
+        phil = Phil()
 
-        # Execute
-        from benson.phil import Phil
-        result = Phil._inverse_preprocessing(preprocessor, X, original_columns)
+        # Create mock return values
+        imputed_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]]).T
+        imputed_df = pd.DataFrame(imputed_array, columns=['A', 'B'])
+        representations = [imputed_array]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock for selected_imputers
+        mock_pipeline = mocker.MagicMock()
+        mock_imputer = mocker.MagicMock()
+        mock_imputer.imputed_columns_ = ['A', 'B']
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act
+        result = phil.fit_transform(df)
 
         # Assert
-        called_args, _ = mock_transformer.inverse_transform.call_args
-        np.testing.assert_array_equal(called_args[0], X)
-        np.testing.assert_array_equal(result, X)
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape == (4, 2)
+        assert list(result.columns) == ['A', 'B']
+        phil.impute.assert_called_once_with(df, 5)
+        assert phil.closest_index == 0
         
-        # Returns a copy of the input array when all transformers are processed
-    def test_inverse_preprocessing_all_transformers_processed(self, mocker):
-        # Setup
+    # Input DataFrame has no missing values (should raise ValueError in impute method)
+    def test_fit_transform_raises_error_with_no_missing_values(self, mocker):
+        # Arrange
+        import pandas as pd
+        import pytest
+        from benson.phil import Phil
+    
+        # Create a test dataframe with no missing values
+        df = pd.DataFrame({
+            'A': [1, 2, 3, 4],
+            'B': [5, 6, 7, 8]
+        })
+    
+        # Mock the impute method to raise ValueError as per its implementation
+        phil = Phil()
+        mocker.patch.object(phil, 'impute', side_effect=ValueError("No missing values found in the input DataFrame."))
+    
+        # Act & Assert
+        with pytest.raises(ValueError, match="No missing values found in the input DataFrame."):
+            phil.fit_transform(df)
+        
+        # Verify the impute method was called with correct parameters
+        phil.impute.assert_called_once_with(df, 5)
+        
+    # Returns a DataFrame with the correct columns from the selected imputation
+    def test_fit_transform_returns_dataframe_with_correct_columns(self, mocker):
+        # Arrange
+        import pandas as pd
         import numpy as np
         from benson.phil import Phil
-        mock_num_transformer = mocker.Mock()
-        mock_num_transformer.inverse_transform.return_value = np.array([[10.0, 20.0], [30.0, 40.0]])
+
+        # Create a test dataframe with missing values
+        df = pd.DataFrame({
+            'A': [1, 2, np.nan, 4],
+            'B': [5, np.nan, 7, 8]
+        })
+
+        # Mock the necessary methods
+        phil = Phil()
+
+        # Create mock return values
+        imputed_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]]).T
+        representations = [imputed_array]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock for selected_imputers
+        mock_pipeline = mocker.MagicMock()
+        mock_imputer = mocker.MagicMock()
+        mock_imputer.imputed_columns_ = ['A', 'B']
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act
+        result = phil.fit_transform(df)
+
+        # Assert
+        assert isinstance(result, pd.DataFrame)
+        assert list(result.columns) == ['A', 'B']
+        
+    # Selected imputer doesn't have imputed_columns_ attribute
+    def test_fit_transform_raises_attribute_error_when_imputed_columns_missing(self, mocker):
+        # Arrange
+        import pandas as pd
+        import numpy as np
+        from benson.phil import Phil
+
+        # Create a test dataframe with missing values
+        df = pd.DataFrame({
+            'A': [1, 2, np.nan, 4],
+            'B': [5, np.nan, 7, 8]
+        })
+
+        # Mock the necessary methods
+        phil = Phil()
+
+        # Create mock return values
+        imputed_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]]).T
+        representations = [imputed_array]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock for selected_imputers without imputed_columns_ attribute
+        mock_pipeline = mocker.MagicMock()
+        mock_imputer = mocker.MagicMock()
+        del mock_imputer.imputed_columns_  # Remove the attribute to simulate the error
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act & Assert
+        with pytest.raises(AttributeError):
+            phil.fit_transform(df)
+            
+    # Preserves column names in the returned DataFrame
+    def test_fit_transform_preserves_column_names(self, mocker):
+        # Arrange
+        import pandas as pd
+        import numpy as np
+        from benson.phil import Phil
+
+        # Create a test dataframe with missing values
+        df = pd.DataFrame({
+            'A': [1, 2, np.nan, 4],
+            'B': [5, np.nan, 7, 8]
+        })
+
+        # Mock the necessary methods
+        phil = Phil()
+
+        # Create mock return values
+        imputed_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]]).T
+        representations = [imputed_array]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock for selected_imputers
+        mock_pipeline = mocker.MagicMock()
+        mock_imputer = mocker.MagicMock()
+        mock_imputer.imputed_columns_ = ['A', 'B']
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act
+        result = phil.fit_transform(df)
+
+        # Assert
+        assert isinstance(result, pd.DataFrame)
+        assert list(result.columns) == ['A', 'B']
+        
+    # Handles different max_iter values appropriately
+    def test_fit_transform_with_various_max_iter(self, mocker):
+        # Arrange
+        import pandas as pd
+        import numpy as np
+        from benson.phil import Phil
+
+        # Create a test dataframe with missing values
+        df = pd.DataFrame({
+            'A': [1, 2, np.nan, 4],
+            'B': [5, np.nan, 7, 8]
+        })
+
+        # Mock the necessary methods
+        phil = Phil()
+
+        # Create mock return values
+        imputed_array = np.array([[1, 2, 3, 4], [5, 6, 7, 8]]).T
+        representations = [imputed_array]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock for selected_imputers
+        mock_pipeline = mocker.MagicMock()
+        mock_imputer = mocker.MagicMock()
+        mock_imputer.imputed_columns_ = ['A', 'B']
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act with different max_iter values
+        result_5 = phil.fit_transform(df, max_iter=5)
+        result_10 = phil.fit_transform(df, max_iter=10)
+
+        # Assert
+        assert isinstance(result_5, pd.DataFrame)
+        assert result_5.shape == (4, 2)
+        assert list(result_5.columns) == ['A', 'B']
     
-        mock_cat_transformer = mocker.Mock()
-        mock_cat_transformer.inverse_transform.return_value = np.array([['A', 'B'], ['C', 'D']])
+        assert isinstance(result_10, pd.DataFrame)
+        assert result_10.shape == (4, 2)
+        assert list(result_10.columns) == ['A', 'B']
     
-        preprocessor = mocker.Mock()
-        preprocessor.transformers = [
-            ('num_transformer', mock_num_transformer, ['col1', 'col2']),
-            ('cat_transformer', mock_cat_transformer, ['col3', 'col4'])
+        assert phil.impute.call_count == 2
+        phil.impute.assert_any_call(df, 5)
+        phil.impute.assert_any_call(df, 10)
+        
+    # Correctly identifies numerical and categorical columns in a DataFrame with mixed data types, including boolean columns as numerical.
+    def test_identifies_mixed_data_types_correctly_with_boolean(self):
+        # Create a test DataFrame with mixed column types
+        import pandas as pd
+        from benson.phil import Phil
+        data = {
+            'string_col': ['apple', 'banana', 'cherry'],
+            'category_col': pd.Series(['dog', 'cat', 'mouse']).astype('category'),
+            'integer_col': [10, 20, 30],
+            'float_col': [0.1, 0.2, 0.3],
+            'boolean_col': [True, False, True]
+        }
+        df = pd.DataFrame(data)
+
+        # Call the method under test
+        categorical_cols, numerical_cols = Phil._identify_column_types(df)
+
+        # Assert that categorical columns are correctly identified
+        assert set(categorical_cols) == {'string_col', 'category_col'}
+        assert set(numerical_cols) == {'integer_col', 'float_col', 'boolean_col'}
+        
+    # Returns a tuple with two lists (categorical and numerical column names)
+    def test_identifies_column_types_correctly(self):
+        # Create a test DataFrame with mixed column types
+        import pandas as pd
+        from benson.phil import Phil
+        data = {
+            'string_col': ['apple', 'banana', 'cherry'],
+            'category_col': pd.Series(['dog', 'cat', 'mouse']).astype('category'),
+            'integer_col': [10, 20, 30],
+            'float_col': [0.1, 0.2, 0.3]
+        }
+        df = pd.DataFrame(data)
+
+        # Call the method under test
+        categorical_cols, numerical_cols = Phil._identify_column_types(df)
+
+        # Assert that categorical columns are correctly identified
+        assert set(categorical_cols) == {'string_col', 'category_col'}
+        assert set(numerical_cols) == {'integer_col', 'float_col'}
+        
+    # Preserves column order within each type category
+    def test_preserves_column_order_within_each_type_category(self):
+        import pandas as pd
+        from benson.phil import Phil
+        # Create a test DataFrame with mixed column types
+        data = {
+            'int_col': [1, 2, 3],
+            'object_col': ['a', 'b', 'c'],
+            'float_col': [1.1, 2.2, 3.3],
+            'category_col': pd.Series(['x', 'y', 'z']).astype('category')
+        }
+        df = pd.DataFrame(data)
+
+        # Call the method under test
+        categorical_cols, numerical_cols = Phil._identify_column_types(df)
+
+        # Assert that the order of columns is preserved within each type category
+        assert categorical_cols == ['object_col', 'category_col']
+        assert numerical_cols == ['int_col', 'float_col']
+        
+        # Generates descriptors for each imputed dataset in self.representations using a mocked _configure_magic_method
+    def test_generates_descriptors_for_imputed_datasets_with_mocked_configure_magic_method(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        import numpy as np
+
+        # Create mock magic object
+        mock_magic = mocker.Mock()
+        mock_magic.generate.side_effect = lambda x: x + 1  # Simple transformation
+    
+        # Mock the _configure_magic_method to return a tuple of (mock_config, mock_magic)
+        mock_config = mocker.Mock()
+        mocker.patch.object(Phil, '_configure_magic_method', return_value=(mock_config, mock_magic))
+
+        # Create test instance with mocked _configure_magic_method
+        phil = Phil(magic="test_magic")
+
+        # Set up test data
+        test_representations = [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        phil.representations = test_representations
+
+        # Act
+        result = phil.generate_descriptors()
+
+        # Assert
+        assert len(result) == len(test_representations)
+        assert np.array_equal(result[0], test_representations[0] + 1)
+        assert np.array_equal(result[1], test_representations[1] + 1)
+        assert mock_magic.generate.call_count == len(test_representations)
+        
+        
+    # Correctly calculates the mean descriptor from a list of descriptors
+    def test_select_representative_finds_closest_to_mean(self):
+        # Arrange
+        import numpy as np
+        from typing import List
+    
+        class TestClass:
+            @staticmethod
+            def _select_representative(descriptors: List[np.ndarray]) -> int:
+                """Finds the descriptor closest to the mean representation."""
+                avg_descriptor = np.mean(descriptors, axis=0)
+                return np.argmin([np.linalg.norm(descriptor - avg_descriptor) for descriptor in descriptors])
+    
+        # Create test descriptors where the second one is closest to the mean
+        descriptors = [
+            np.array([1.0, 2.0, 3.0]),
+            np.array([2.0, 2.0, 2.0]),  # This should be closest to mean
+            np.array([3.0, 2.0, 1.0])
         ]
     
-        X = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
-        original_columns = ['col1', 'col2', 'col3', 'col4']
-
-        # Execute
-        result = Phil._inverse_preprocessing(preprocessor, X, original_columns)
+        # Calculate expected mean manually
+        expected_mean = np.array([2.0, 2.0, 2.0])  # (1+2+3)/3, (2+2+2)/3, (3+2+1)/3
+    
+        # Act
+        result = TestClass._select_representative(descriptors)
     
         # Assert
-        mock_num_transformer.inverse_transform.assert_called_once_with(X[:, [0, 1]])
-        mock_cat_transformer.inverse_transform.assert_called_once_with(X[:, [2, 3]])
-        expected_result = np.array([[10.0, 20.0, 'A', 'B'], [30.0, 40.0, 'C', 'D']])
-        np.testing.assert_array_equal(result, expected_result)
+        assert result == 1, f"Expected index 1 but got {result}"
+        # Verify the mean calculation is correct
+        actual_mean = np.mean(descriptors, axis=0)
+        np.testing.assert_array_almost_equal(actual_mean, expected_mean)
+        
+    # Empty list of descriptors
+    def test_select_representative_with_empty_list(self):
+        # Arrange
+        import warnings
+        import numpy as np
+        import pytest
+        from typing import List
     
+        class TestClass:
+            @staticmethod
+            def _select_representative(descriptors: List[np.ndarray]) -> int:
+                """Finds the descriptor closest to the mean representation."""
+                avg_descriptor = np.mean(descriptors, axis=0)
+                return np.argmin([np.linalg.norm(descriptor - avg_descriptor) for descriptor in descriptors])
+
+        empty_descriptors = [] 
+        # Act & Assert
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            with pytest.raises(ValueError):
+                TestClass._select_representative(empty_descriptors)
+            
+    # Returns ImputationGrid from GridGallery when param_grid is a string
+    def test_returns_imputation_grid_from_gallery_when_string(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from benson import ImputationGrid
+        from benson.gallery import GridGallery
     
+        mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
+        mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
+    
+        # Act
+        result = Phil._configure_param_grid("default")
+    
+        # Assert
+        GridGallery.get.assert_called_once_with("default")
+        assert result == mock_grid
+        
+    # Raises ValueError for invalid parameter grid types
+    def test_raises_value_error_for_invalid_grid_type(self):
+        # Arrange
+        from benson.phil import Phil
+        import pytest
+    
+        # Act & Assert
+        with pytest.raises(ValueError, match="Invalid parameter grid type."):
+            Phil._configure_param_grid(123)  # Integer is neither string nor BaseModel
+    
+        with pytest.raises(ValueError, match="Invalid parameter grid type."):
+            Phil._configure_param_grid([])  # List is neither string nor BaseModel
+        
+        with pytest.raises(ValueError, match="Invalid parameter grid type."):
+            Phil._configure_param_grid({})  # Dict is neither string nor BaseModel
+    
+    # Returns model_dump() result when param_grid is a BaseModel instance
+    def test_returns_model_dump_when_param_grid_is_basemodel(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from pydantic import BaseModel
+    
+        class MockBaseModel(BaseModel):
+            def model_dump(self):
+                return {"key": "value"}
+    
+        mock_param_grid = MockBaseModel()
+    
+        # Act
+        result = Phil._configure_param_grid(mock_param_grid)
+    
+        # Assert
+        assert result == {"key": "value"}
+        
+    # Handles valid string inputs like "default", "finance", "healthcare"
+    def test_configure_param_grid_with_valid_string(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from benson import ImputationGrid
+        from benson.gallery import GridGallery
+
+        mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
+        mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
+
+        # Act
+        result = Phil._configure_param_grid("finance")
+
+        # Assert
+        GridGallery.get.assert_called_once_with("finance")
+        assert result == mock_grid
+        
+    # Ensures that the _configure_param_grid method correctly returns the model dump of a BaseModel instance.
+    def test_returns_model_dump_when_base_model_instance(self):
+        from benson.phil import Phil
+        from pydantic import BaseModel
+
+        class MockBaseModel(BaseModel):
+            field: str = "value"
+
+        mock_base_model = MockBaseModel()
+        expected_result = mock_base_model.model_dump()
+
+        result = Phil._configure_param_grid(mock_base_model)
+
+        assert result == expected_result
+        
+    # Correctly integrates with Phil class initialization
+    def test_returns_imputation_grid_when_param_grid_is_string(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from benson import ImputationGrid
+        from benson.gallery import GridGallery
+
+        mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
+        mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
+
+        # Act
+        result = Phil._configure_param_grid("default")
+
+        # Assert
+        GridGallery.get.assert_called_once_with("default")
+        assert result == mock_grid
+        
+    # Raises ValueError for invalid parameter grid types (not string or BaseModel)
+    def test_raises_value_error_for_invalid_param_grid_type(self):
+        # Arrange
+        from benson.phil import Phil
+
+        invalid_param_grid = 123  # An invalid type, neither string nor BaseModel
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="Invalid parameter grid type."):
+            Phil._configure_param_grid(invalid_param_grid)
