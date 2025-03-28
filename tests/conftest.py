@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+from benson.magic import ECTConfig
 
 
 
@@ -15,3 +16,15 @@ def test_dataFrame():
         "F": ["u", "v", None, "x", "y"],
     }
 )
+    
+    
+    
+@pytest.fixture
+def mock_ECTConfig():
+    return ECTConfig(
+        num_thetas=100,
+        radius=1,
+        resolution=100,
+        scale=1,
+        ect_fn="scaled_sigmoid",
+        seed=0)
