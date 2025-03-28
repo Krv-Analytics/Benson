@@ -208,7 +208,7 @@ class Phil:
         X = self.representations[self.closest_index]
         #get imputed column labels from Pipeline
         pipeline = self.selected_imputers[self.closest_index]
-        imputed_columns = self._get_imputed_columns(transformer=pipeline['imputer'])
+        imputed_columns = self._get_imputed_columns(transformer=pipeline['preprocessor'])
         return pd.DataFrame(X, columns=imputed_columns)
 
 
