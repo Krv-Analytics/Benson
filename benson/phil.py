@@ -247,7 +247,7 @@ class Phil:
                 raise ValueError("Invalid parameter grid configuration.")
             return ImputationGrid(methods=param_grid.methods, modules=param_grid.modules, grids=param_grid.grids)
         if isinstance(param_grid, dict):
-            if not hasattr(param_grid, "methods") or not hasattr(param_grid, "modules") or not hasattr(param_grid, "grids"):
+            if not all(key in param_grid for key in ["methods", "modules", "grids"]):
                 raise ValueError("Invalid parameter grid configuration.")
             data = {k: v for k, v in param_grid.items() if k in ["methods", "modules", "grids"]}
             return ImputationGrid(**data)
