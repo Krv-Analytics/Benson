@@ -199,6 +199,7 @@ class Phil:
     def generate_descriptors(self) -> List[np.ndarray]:
         """Generates topological descriptors for imputed datasets."""
         return [self.magic.generate(imputed_df) for imputed_df in self.representations]
+    
 
     def fit_transform(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
         self.representations = self.impute(df, max_iter)
@@ -206,8 +207,16 @@ class Phil:
         self.closest_index = self._select_representative(self.magic_descriptors)
         X = self.representations[self.closest_index]
         #get imputed column labels from Pipeline
-        imputed_columns = self.selected_imputers[self.closest_index].named_steps['imputer'].imputed_columns_
+        pipeline = self.selected_imputers[self.closest_index]
+        imputed_columns = self._get_imputed_columns(transformer=pipeline['imputer'])
         return pd.DataFrame(X, columns=imputed_columns)
+
+
+
+    @staticmethod
+    def _get_imputed_columns(transformer:ColumnTransformer) -> List[str]:
+        """Retrieves the imputed column labels from the pipeline."""
+        return transformer.get_feature_names_out()
 
 
     @staticmethod
@@ -231,8 +240,17 @@ class Phil:
         """Retrieves the imputation parameter grid."""
         if isinstance(param_grid, str):
             return GridGallery.get(param_grid)
+        if isinstance(param_grid, ImputationGrid):
+            return param_grid
         if isinstance(param_grid, BaseModel):
-            return param_grid.model_dump()
+            if not hasattr(param_grid, "methods") or not hasattr(param_grid, "modules") or not hasattr(param_grid, "grids"):
+                raise ValueError("Invalid parameter grid configuration.")
+            return ImputationGrid(methods=param_grid.methods, modules=param_grid.modules, grids=param_grid.grids)
+        if isinstance(param_grid, dict):
+            if not hasattr(param_grid, "methods") or not hasattr(param_grid, "modules") or not hasattr(param_grid, "grids"):
+                raise ValueError("Invalid parameter grid configuration.")
+            data = {k: v for k, v in param_grid.items() if k in ["methods", "modules", "grids"]}
+            return ImputationGrid(**data)
         raise ValueError("Invalid parameter grid type.")
     
     @staticmethod
@@ -255,8 +273,8 @@ class Phil:
             elif key == "cat" and len(categorical_columns) > 0:
                 transformers.append((key, transformer, categorical_columns))
 
-        return ColumnTransformer(transformers)
-            
+        return ColumnTransformer(transformers,verbose_feature_names_out=True)
+        
             
     
     

@@ -223,7 +223,7 @@ class TestPhil:
         mock_apply.assert_called_once()
         
     # Successfully imputes missing values and returns a DataFrame with imputed values
-    def test_fit_transform_returns_imputed_dataframe(self, mocker):
+    def test_fit_transform_returns_imputed_dataframe_numeric(self, mocker):
         # Arrange
         import pandas as pd
         import numpy as np
@@ -247,11 +247,11 @@ class TestPhil:
         mocker.patch.object(phil, 'impute', return_value=representations)
         mocker.patch.object(phil, 'generate_descriptors', return_value=[np.array([0.1, 0.2])])
         mocker.patch.object(phil, '_select_representative', return_value=0)
-
+      
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mock_imputer.imputed_columns_ = ['A', 'B']
+        mocker.patch.object(phil, '_get_imputed_columns', return_value=['A', 'B'])
         mock_pipeline.named_steps = {'imputer': mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -264,6 +264,58 @@ class TestPhil:
         assert list(result.columns) == ['A', 'B']
         phil.impute.assert_called_once_with(df, 5)
         assert phil.closest_index == 0
+        
+    
+        # Successfully imputes missing values and returns a DataFrame with imputed values
+    def test_fit_transform_imputes_missing_values_mixed_types(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        import pandas as pd
+        import numpy as np
+
+        # Create a DataFrame with missing values
+        df = pd.DataFrame({
+            'num_col': [1.0, 2.0, np.nan, 4.0],
+            'cat_col': ['a', 'b', np.nan, 'd']
+        })
+
+        # Mock the necessary methods
+        phil = Phil()
+
+        # Create mock return values
+        imputed_df = pd.DataFrame({
+            'num_col': [1.0, 2.0, 3.0, 4.0],
+            'cat_col': ['a', 'b', 'c', 'd']
+        }).values
+
+        mock_representations = [imputed_df]
+        mock_descriptors = [np.array([0.1, 0.2, 0.3])]
+
+        # Setup mocks
+        mocker.patch.object(phil, 'impute', return_value=mock_representations)
+        mocker.patch.object(phil, 'generate_descriptors', return_value=mock_descriptors)
+        mocker.patch.object(phil, '_select_representative', return_value=0)
+
+        # Create a mock imputer pipeline with get_feature_names_out method
+        mock_imputer = mocker.MagicMock()
+        mocker.patch.object(phil, '_get_imputed_columns', return_value=['num_col', 'cat_col'])
+
+        mock_pipeline = mocker.MagicMock()
+        mock_pipeline.named_steps = {'imputer': mock_imputer}
+
+        phil.selected_imputers = [mock_pipeline]
+
+        # Act
+        result = phil.fit_transform(df)
+
+        # Assert
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape == (4, 2)
+        assert list(result.columns) == ['num_col', 'cat_col']
+        phil.impute.assert_called_once_with(df, 5)
+        assert phil.closest_index == 0
+       
+       
         
     # Input DataFrame has no missing values (should raise ValueError in impute method)
     def test_fit_transform_raises_error_with_no_missing_values(self, mocker):
@@ -317,7 +369,7 @@ class TestPhil:
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mock_imputer.imputed_columns_ = ['A', 'B']
+        mocker.patch.object(phil, '_get_imputed_columns', return_value=['A', 'B'])
         mock_pipeline.named_steps = {'imputer': mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -356,7 +408,7 @@ class TestPhil:
         # Create a mock for selected_imputers without imputed_columns_ attribute
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        del mock_imputer.imputed_columns_  # Remove the attribute to simulate the error
+        mocker.patch.object(phil, '_get_imputed_columns', side_effect=AttributeError("Mocked error"))
         mock_pipeline.named_steps = {'imputer': mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -392,7 +444,7 @@ class TestPhil:
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mock_imputer.imputed_columns_ = ['A', 'B']
+        mocker.patch.object(phil, '_get_imputed_columns', return_value=['A', 'B'])
         mock_pipeline.named_steps = {'imputer': mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -431,7 +483,7 @@ class TestPhil:
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mock_imputer.imputed_columns_ = ['A', 'B']
+        mocker.patch.object(phil, '_get_imputed_columns', return_value=['A', 'B'])
         mock_pipeline.named_steps = {'imputer': mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -597,114 +649,205 @@ class TestPhil:
             warnings.simplefilter("ignore", category=RuntimeWarning)
             with pytest.raises(ValueError):
                 TestClass._select_representative(empty_descriptors)
-            
-    # Returns ImputationGrid from GridGallery when param_grid is a string
-    def test_returns_imputation_grid_from_gallery_when_string(self, mocker):
-        # Arrange
+    
+    def test_configure_param_grid_with_valid_string(self,mocker):
+        """Handles valid string inputs like 'default', 'finance', 'healthcare'."""
         from benson.phil import Phil
         from benson import ImputationGrid
         from benson.gallery import GridGallery
-    
-        mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
-        mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
-    
-        # Act
-        result = Phil._configure_param_grid("default")
-    
-        # Assert
-        GridGallery.get.assert_called_once_with("default")
-        assert result == mock_grid
-        
-    # Raises ValueError for invalid parameter grid types
-    def test_raises_value_error_for_invalid_grid_type(self):
-        # Arrange
-        from benson.phil import Phil
-        import pytest
-    
-        # Act & Assert
-        with pytest.raises(ValueError, match="Invalid parameter grid type."):
-            Phil._configure_param_grid(123)  # Integer is neither string nor BaseModel
-    
-        with pytest.raises(ValueError, match="Invalid parameter grid type."):
-            Phil._configure_param_grid([])  # List is neither string nor BaseModel
-        
-        with pytest.raises(ValueError, match="Invalid parameter grid type."):
-            Phil._configure_param_grid({})  # Dict is neither string nor BaseModel
-    
-    # Returns model_dump() result when param_grid is a BaseModel instance
-    def test_returns_model_dump_when_param_grid_is_basemodel(self, mocker):
-        # Arrange
-        from benson.phil import Phil
-        from pydantic import BaseModel
-    
-        class MockBaseModel(BaseModel):
-            def model_dump(self):
-                return {"key": "value"}
-    
-        mock_param_grid = MockBaseModel()
-    
-        # Act
-        result = Phil._configure_param_grid(mock_param_grid)
-    
-        # Assert
-        assert result == {"key": "value"}
-        
-    # Handles valid string inputs like "default", "finance", "healthcare"
-    def test_configure_param_grid_with_valid_string(self, mocker):
-        # Arrange
-        from benson.phil import Phil
-        from benson import ImputationGrid
-        from benson.gallery import GridGallery
-
         mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
         mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
 
-        # Act
         result = Phil._configure_param_grid("finance")
 
-        # Assert
         GridGallery.get.assert_called_once_with("finance")
         assert result == mock_grid
-        
-    # Ensures that the _configure_param_grid method correctly returns the model dump of a BaseModel instance.
-    def test_returns_model_dump_when_base_model_instance(self):
+
+    def test_configure_param_grid_with_invalid_inputs(self):
+        """Ensures incorrect inputs raise ValueError."""
         from benson.phil import Phil
         from pydantic import BaseModel
-
-        class MockBaseModel(BaseModel):
-            field: str = "value"
-
-        mock_base_model = MockBaseModel()
-        expected_result = mock_base_model.model_dump()
-
-        result = Phil._configure_param_grid(mock_base_model)
-
-        assert result == expected_result
         
-    # Correctly integrates with Phil class initialization
-    def test_returns_imputation_grid_when_param_grid_is_string(self, mocker):
-        # Arrange
+        class MockInvalidBaseModel(BaseModel):
+            field: str = "invalid"
+        with pytest.raises(ValueError, match="Invalid parameter grid configuration."):
+            Phil._configure_param_grid(MockInvalidBaseModel())
+
+        with pytest.raises(ValueError, match="Invalid parameter grid configuration."):
+            Phil._configure_param_grid({"invalid": "data"})
+
+        with pytest.raises(ValueError, match="Invalid parameter grid type."):
+            Phil._configure_param_grid(123)
+
+    def test_configure_param_grid_with_valid_base_model(self,mocker):
+        """Ensures valid BaseModel instances are converted to ImputationGrid."""
+        from pydantic import BaseModel
         from benson.phil import Phil
         from benson import ImputationGrid
-        from benson.gallery import GridGallery
-
-        mock_grid = ImputationGrid(methods=["TestMethod"], modules=["test.module"], grids=[])
-        mocker.patch.object(GridGallery, 'get', return_value=mock_grid)
-
-        # Act
-        result = Phil._configure_param_grid("default")
-
-        # Assert
-        GridGallery.get.assert_called_once_with("default")
-        assert result == mock_grid
+        from sklearn.model_selection import ParameterGrid
+        from sklearn.compose import ColumnTransformer
         
-    # Raises ValueError for invalid parameter grid types (not string or BaseModel)
-    def test_raises_value_error_for_invalid_param_grid_type(self):
+        
+
+        class MockValidBaseModel(BaseModel):
+            methods: str = ["value"]
+            modules: str = ["value"]
+            grids: str = [ParameterGrid({})]
+            
+        mock_param_grid = MockValidBaseModel()
+        
+        result = Phil._configure_param_grid(mock_param_grid)
+
+        assert isinstance(result, ImputationGrid)
+        assert result.methods == ["value"]
+        assert result.modules == ["value"]
+        
+    
         # Arrange
         from benson.phil import Phil
+    
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+    
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+    
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
 
-        invalid_param_grid = 123  # An invalid type, neither string nor BaseModel
-
+    # Handles transformer that hasn't been fitted yet (should raise error)
+    def test_raises_error_for_unfitted_transformer(self):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+        from sklearn.impute import SimpleImputer
+        import pytest
+    
+        # Create an unfitted ColumnTransformer
+        transformer = ColumnTransformer(
+            transformers=[
+                ('imputer', SimpleImputer(), ['col1', 'col2'])
+            ]
+        )
+    
         # Act & Assert
-        with pytest.raises(ValueError, match="Invalid parameter grid type."):
-            Phil._configure_param_grid(invalid_param_grid)
+        with pytest.raises(ValueError):
+            Phil._get_imputed_columns(transformer)
+
+    # Correctly extracts column names from a properly configured transformer
+    def test_extracts_column_names_from_transformer(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
+
+    # Returns a list of strings representing column names
+    def test_returns_imputed_column_names(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
+
+    # Works with transformers that have been fitted on data
+    def test_get_imputed_columns_with_fitted_transformer(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
+
+    # Handles empty transformer with no columns
+    def test_empty_transformer_no_columns(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer with no columns
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = []
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == []
+        mock_transformer.get_feature_names_out.assert_called_once()
+
+    # Handles case when get_feature_names_out() method doesn't exist
+    def test_handles_missing_get_feature_names_out_method(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+    
+        # Create a mock ColumnTransformer without get_feature_names_out method
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        del mock_transformer.get_feature_names_out
+    
+        # Act & Assert
+        with pytest.raises(AttributeError):
+            Phil._get_imputed_columns(mock_transformer)
+
+    # Used in fit_transform method to get column names for DataFrame construction
+    def test_get_imputed_columns_returns_correct_names(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
+
+    # Assumes transformer is a scikit-learn ColumnTransformer
+    def test_get_imputed_columns_returns_feature_names(self, mocker):
+        # Arrange
+        from benson.phil import Phil
+        from sklearn.compose import ColumnTransformer
+
+        # Create a mock ColumnTransformer
+        mock_transformer = mocker.Mock(spec=ColumnTransformer)
+        mock_transformer.get_feature_names_out.return_value = ['imputed_col1', 'imputed_col2']
+
+        # Act
+        result = Phil._get_imputed_columns(mock_transformer)
+
+        # Assert
+        assert result == ['imputed_col1', 'imputed_col2']
+        mock_transformer.get_feature_names_out.assert_called_once()
