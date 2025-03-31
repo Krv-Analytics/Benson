@@ -3,7 +3,8 @@
 Benson is the powerhouse behind `Phil`, the advanced imputation engine designed to intelligently handle missing data in complex datasets. Whether you're dealing with high-dimensional gaps, inconsistent encodings, or stubborn anomalies, Benson ensures your data gets the cleanup it deserves—efficiently and at scale.
 
 🔥 What Benson Does
-• Powers Phil 🧩: A cutting-edge imputation tool that leverages topological and probabilistic techniques to explore multiple missing-data scenarios and select the best-fitted completion.
+• Powers Phil 🧩: **PHIL: a Progressive High-Dimensional Imputation Lab.**  
+ Phil is an advanced data imputation tool that combines scikit-learn's IterativeImputer with topological methods to generate and analyze multiple versions of a dataset. It allows users to impute missing data using various techniques, generate representations of imputed datasets, and democratically select a representative version.
 
 🚀 Coming Soon
 • AgentBenson 🤖: A seamless integration layer for popular agentic frameworks, enabling automated data cleaning and repair with minimal intervention.  

@@ -18,6 +18,8 @@ import benson.magic as METHODS
 
 class Phil:
     """
+    PHIL: a _P_rogressive _H_igh-Dimensional _I_mputation _L_ab.
+
     Phil is an advanced data imputation tool that combines scikit-learn's IterativeImputer 
     with topological methods to generate and analyze multiple versions of a dataset.
 
