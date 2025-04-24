@@ -3,22 +3,20 @@ import pandas as pd
 from benson.magic import ECTConfig
 
 
-
 @pytest.fixture
 def test_dataFrame():
     return pd.DataFrame(
-    {
-        "A": [1, 2, None, 4, 5],
-        "B": ["a", "b", None, "d", "d"],
-        "C": ["x", "y", "z", None, "w"],
-        "D": [None, 10, 20, 30, 40],
-        "E": ["p", "q", "r", "r", None],
-        "F": ["u", "v", None, "x", "y"],
-    }
-)
-    
-    
-    
+        {
+            "A": [1, 2, None, 4, 5],
+            "B": ["a", "b", None, "d", "d"],
+            "C": ["x", "y", "z", None, "w"],
+            "D": [None, 10, 20, 30, 40],
+            "E": ["p", "q", "r", "r", None],
+            "F": ["u", "v", None, "x", "y"],
+        }
+    )
+
+
 @pytest.fixture
 def mock_ECTConfig():
     return ECTConfig(
@@ -27,4 +25,5 @@ def mock_ECTConfig():
         resolution=100,
         scale=1,
         ect_fn="scaled_sigmoid",
-        seed=0)
+        seed=0,
+    )
