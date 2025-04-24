@@ -23,18 +23,12 @@ class GridGallery:
 
     Available Grids
     --------------
-    default
-        General-purpose configuration using a mix of methods.
-    finance
-        Optimized for financial data with emphasis on robustness.
-    healthcare
-        Focused on preserving distributions in medical data.
-    marketing
-        Handles mixed-type data common in marketing.
-    engineering
-        Configured for technical and sensor data.
-    risk_analysis
-        Conservative settings for risk-sensitive data.
+    * `default` - General-purpose configuration using a mix of methods.
+    * `finance` - Optimized for financial data with emphasis on robustness.
+    * `healthcare` - Focused on preserving distributions in medical data.
+    * `marketing` - Handles mixed-type data common in marketing.
+    * `engineering` - Configured for technical and sensor data.
+    * `risk_analysis` - Conservative settings for risk-sensitive data.
     """
 
     _grids = {

@@ -21,7 +21,7 @@ class ECT(Magic):
     Euler Characteristic Transform implementation for representational analysis.
 
     This class implements the Magic interface using the Euler Characteristic
-    Transform (ECT) from the DECT library. ECT captures the topological and
+    Transform (ECT) from the [DECT](https://aidos.group/dect/dect.html) library. ECT captures the topological and
     geometric properties of point clouds by computing persistence-based
     signatures along different directions.
 
@@ -135,7 +135,7 @@ class ECT(Magic):
             # Convert to batched tensor format [B,N,D]
             batch_tensor = torch.stack([torch.from_numpy(x).float() for x in X])
         except RuntimeError as e:
-            raise ValueError(f"Invalid input data format") from e
+            raise ValueError(f"Invalid input data format: {e}")
 
         dim = batch_tensor.shape[-1]
         directions = generate_uniform_directions(
