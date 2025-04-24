@@ -9,4 +9,4 @@ from benson.magic.base import Magic
 from benson.magic.ect import ECT
 from benson.magic.config import ECTConfig
 
-__all__ = ["Magic"]
+__all__ = ["Magic", "ECT", "ECTConfig"]
