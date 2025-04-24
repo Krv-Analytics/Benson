@@ -1,39 +1,64 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Dict, List, Any
-from typing import ClassVar
-from sklearn.model_selection import ParameterGrid
+"""
+Benson: Advanced Data Imputation Framework
+========================================
 
-class ImputationGrid(BaseModel):
-    methods: List[str] = Field(
-        default_factory=list,
-        description="A list of sklearn model names, where the index maps to the corresponding ParameterGrid and module."
-    )
-    modules: List[str] = Field(
-        default_factory=list,
-        description="A list of sklearn module names, where the index maps to the corresponding model and ParameterGrid."
-    )
-    grids: List[ParameterGrid] = Field(
-        default_factory=list,
-        description="A list of ParameterGrid objects, where the index maps to the corresponding model and module."
-    )
+Benson is a powerful Python library for intelligent data imputation, designed to handle
+complex missing data scenarios in high-dimensional datasets. It combines advanced statistical
+methods with topological data analysis to provide robust and accurate imputations.
 
-    # Annotate Config as ClassVar
-    Config: ClassVar[ConfigDict] = ConfigDict(arbitrary_types_allowed=True)
+Key Components
+-------------
+* Phil: Progressive High-dimensional Imputation Lab
+  The core engine that combines iterative imputation with topological analysis.
 
-        
-class PreprocessingConfig(BaseModel):
-    method: str = Field(
-        default="StandardScaler",
-        description="The name of the sklearn model for which the preprocessing configuration is defined."
-    )
-    module: str = Field(
-        default="sklearn.preprocessing",
-        description="The name of the sklearn module that contains the specified model."
-    )
-    params: Dict = Field(
-        default={},
-        description="A parameter configuration, where keys are parameters for the method and values are the required value."
-    )
+* Distribution-Preserving Imputation
+  Statistical methods that maintain the original data distribution properties.
 
-    # Annotate Config as ClassVar
-    Config: ClassVar[ConfigDict] = ConfigDict(arbitrary_types_allowed=True)
+* Magic Methods
+  Topological data analysis tools for evaluating imputation quality.
+
+Main Features
+------------
+- Multiple imputation strategies with automatic selection
+- Distribution-preserving imputation methods
+- Topological data analysis for quality assessment
+- Support for both numerical and categorical data
+- Scalable to high-dimensional datasets
+
+Example
+-------
+>>> from benson import Phil
+>>> phil = Phil()
+>>> imputed_df = phil.fit_transform(df)
+
+The library automatically handles:
+- Missing value detection
+- Data type inference
+- Imputation strategy selection
+- Quality assessment
+- Representative imputation selection
+
+See Also
+--------
+* Documentation: <link to documentation>
+* Source Code: https://github.com/<organization>/benson
+"""
+
+from .imputation import (
+    DistributionImputer,
+    ImputationConfig,
+    PreprocessingConfig,
+)
+from .phil import Phil
+from .magic import Magic, ECT, ECTConfig
+
+__version__ = "0.1.0"
+__all__ = [
+    "Phil",
+    "DistributionImputer",
+    "ImputationConfig",
+    "PreprocessingConfig",
+    "Magic",
+    "ECT",
+    "ECTConfig",
+]

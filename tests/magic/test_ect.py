@@ -1,87 +1,246 @@
 import pytest
-import dect.ect_fn as ECT_FNs
+import numpy as np
+import torch
+from benson.magic.ect import ECT
+from benson.magic.config import ECTConfig
+
 
 class TestECT:
-    # Initializes ECT object with valid ECTConfig
     def test_init_with_valid_config(self, mocker):
-        from benson.magic.ect import ECT
-        from benson.magic.config import ECTConfig
         # Arrange
-        mock_configure = mocker.patch('benson.magic.ect.ECT.configure')
+        mock_configure = mocker.patch("benson.magic.ect.ECT.configure")
         config = ECTConfig(
             num_thetas=10,
             radius=1.0,
             resolution=100,
             scale=1,
-            ect_fn="scaled_sigmoid",
-            seed=42
+            seed=42,
         )
-    
+
         # Act
-        from benson.magic.ect import ECT
         ect = ECT(config)
-    
+
         # Assert
         assert ect.config == config
         mock_configure.assert_called_once_with(**config.model_dump())
-        
-        # Valid configuration keys including 'ect_fn' are updated in the ECT instance
-    def test_valid_configuration_keys_are_updated_with_ect_fn(self, mocker):
-        # Arrange
-        from benson.magic.ect import ECT
 
-        # Mock the config object
+    def test_valid_configuration_keys_are_updated(self, mocker):
+        # Arrange
         mock_config = mocker.MagicMock()
         mock_config.num_thetas = 100
         mock_config.seed = 42
-        mock_config.ect_fn = 'scaled_sigmoid'
-        mock_config.model_dump.return_value = {'num_thetas': 100, 'seed': 42, 'ect_fn': 'scaled_sigmoid'}
+        mock_config.model_dump.return_value = {
+            "num_thetas": 100,
+            "seed": 42,
+        }
 
         # Mock hasattr to return True for valid keys on the config object
         original_hasattr = hasattr
+
         def mock_hasattr(obj, attr):
-            if obj is mock_config and attr in ['num_thetas', 'seed', 'ect_fn']:
+            if obj is mock_config and attr in ["num_thetas", "seed"]:
                 return True
             return original_hasattr(obj, attr)
-    
-        mocker.patch('builtins.hasattr', side_effect=mock_hasattr)
+
+        mocker.patch("builtins.hasattr", side_effect=mock_hasattr)
 
         # Create instance with mocked config
         ect_instance = ECT(config=mock_config)
 
         # Mock _check_device to return 'cpu'
-        mocker.patch.object(ect_instance, '_check_device', return_value='cpu')
+        mocker.patch.object(ect_instance, "_check_device", return_value="cpu")
 
         # Act
-        ect_instance.configure(num_thetas=200, seed=123, ect_fn='scaled_sigmoid')
+        ect_instance.configure(num_thetas=200, seed=123)
 
         # Assert
         assert ect_instance.num_thetas == 200
         assert ect_instance.seed == 123
-        assert ect_instance.ect_fn == ECT_FNs.scaled_sigmoid
-        
-        # Ensure the device is set to CPU when force_cpu is True and the configuration is correctly applied.
-    def test_device_set_to_cpu_when_force_cpu_true(self, mocker):
+
+    def test_generate_ect_2d(self):
+        B = 5
+        N = 8
+        R = 10
+        D = 2
         # Arrange
-        from benson.magic.ect import ECT
-        from benson.magic.config import ECTConfig
-
-        # Mock the config object
-        mock_config = mocker.MagicMock()
-        mock_config.model_dump.return_value = {'ect_fn': 'scaled_sigmoid'}
-
-        # Set up hasattr to return True for valid keys
-        mocker.patch('builtins.hasattr', side_effect=lambda obj, attr: True if attr in ['ect_fn', 'config'] else False)
-
-        # Create instance with mocked config
-        ect_instance = ECT(config=mock_config)
-
-        # Mock _check_device to return 'cpu'
-        mocker.patch.object(ect_instance, '_check_device', return_value='cpu')
+        config = ECTConfig(
+            num_thetas=N,
+            radius=1.0,
+            resolution=R,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+        X = [
+            np.random.rand(100, D) for _ in range(B)
+        ]  # 5 batches of 100 2D points
 
         # Act
-        ect_instance.configure(ect_fn='scaled_sigmoid')
+        result = ect.generate(X)
 
         # Assert
-        assert ect_instance.device == 'cpu'
-        
+        assert isinstance(result, list)
+        assert len(result) == B  # Check number of batches
+
+        for batch in result:
+            assert isinstance(batch, np.ndarray)
+            assert batch.shape[0] == config.num_thetas
+            assert batch.shape[1] == config.resolution
+
+    def test_generate_ect_3d(self):
+        # Arrange
+        B = 5
+        N = 8
+        R = 10
+        D = 3
+        config = ECTConfig(
+            num_thetas=N,
+            radius=1.0,
+            resolution=R,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+        X = [
+            np.random.rand(100, D) for _ in range(5)
+        ]  # 5 batches of 100 3D points
+
+        # Act
+        result = ect.generate(X)
+
+        # Assert
+        assert isinstance(result, list)
+        assert len(result) == B  # Check number of batches
+        for batch in result:
+            assert isinstance(batch, np.ndarray)
+            assert batch.shape[0] == config.num_thetas
+            assert batch.shape[1] == config.resolution
+
+    def test_generate_with_empty_input(self):
+        # Arrange
+        config = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+        X = [np.array([]).reshape(0, 2) for _ in range(2)]  # Empty point cloud
+
+        # Act
+        with pytest.raises(ValueError):
+            ect.generate(X)
+
+    def test_generate_with_single_point(self):
+        # Arrange
+        config = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+        X = [np.random.rand(1, 2)]  # List containing a single point
+
+        # Act
+        result = ect.generate(X)
+
+        # Assert
+        assert isinstance(result, list)
+        assert len(result) == 1
+        for batch in result:
+            assert isinstance(batch, np.ndarray)
+            assert batch.shape[0] == config.num_thetas
+            assert batch.shape[1] == config.resolution
+
+    def test_generate_with_single_array_raises_error(self):
+        # Arrange
+        config = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+        X = np.random.rand(10, 2)  # Single numpy array, not in a list
+
+        # Act & Assert
+        with pytest.raises(
+            ValueError, match="Input must be a list of numpy arrays"
+        ):
+            ect.generate(X)
+
+    def test_convert_to_tensor(self):
+        """Test converting numpy arrays to PyTorch tensor."""
+        config = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            seed=42,
+        )
+        ect = ECT(config)
+
+        # Test with 2D point clouds
+        X_batch_2d = [np.random.rand(10, 2) for _ in range(3)]
+        tensor_2d = ect._convert_to_tensor(X_batch_2d)
+        assert isinstance(tensor_2d, torch.Tensor)
+        assert tensor_2d.shape == (3, 10, 2)
+        assert tensor_2d.dtype == torch.float32
+
+        # Test with 3D point clouds
+        X_batch_3d = [np.random.rand(5, 3) for _ in range(2)]
+        tensor_3d = ect._convert_to_tensor(X_batch_3d)
+        assert isinstance(tensor_3d, torch.Tensor)
+        assert tensor_3d.shape == (2, 5, 3)
+        assert tensor_3d.dtype == torch.float32
+
+    def test_normalization(self):
+        """Test that normalization parameter affects the output."""
+        # Arrange
+        config_normalized = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            normalize=True,
+            seed=42,
+        )
+        config_unnormalized = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            normalize=False,
+            seed=42,
+        )
+
+        ect_normalized = ECT(config_normalized)
+        ect_unnormalized = ECT(config_unnormalized)
+
+        # Create some random point clouds
+        X = [np.random.rand(100, 2) for _ in range(3)]
+
+        # Act
+        result_normalized = ect_normalized.generate(X)
+        result_unnormalized = ect_unnormalized.generate(X)
+
+        # Assert
+        # Check that results are different when normalization is applied
+        for norm, unnorm in zip(result_normalized, result_unnormalized):
+            assert not np.allclose(
+                norm, unnorm
+            ), "Normalized and unnormalized outputs should be different"
+
+            # Normalized values should be between 0 and 1
+            assert np.all(norm >= 0) and np.all(
+                norm <= 1
+            ), "Normalized values should be between 0 and 1"
+
+            # Check shapes are the same
+            assert (
+                norm.shape == unnorm.shape
+            ), "Output shapes should be the same regardless of normalization"
