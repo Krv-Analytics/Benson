@@ -1,280 +1,280 @@
-from benson import ImputationGrid,PreprocessingConfig
-from benson.magic import *
+"""Collection of predefined configurations for Benson.
+
+This module provides galleries of predefined configurations for imputation,
+preprocessing, and magic methods. These galleries make it easy to use
+domain-specific settings for different types of data and industries.
+"""
+
+from typing import Dict, Any
+from pydantic import BaseModel
 from sklearn.model_selection import ParameterGrid
-from typing import Dict
+import numpy as np
+
+from benson.imputation import ImputationConfig, PreprocessingConfig
+from benson.magic import *
 
 
 class GridGallery:
     """
-    A collection of predefined parameter grids for imputation models.
+    Collection of predefined imputation parameter grids.
 
-    This class provides predefined hyperparameter grids for various imputation models,
-    allowing an agent to quickly select and apply a suitable configuration based on 
-    industry-specific needs.
+    This class provides industry-specific imputation configurations optimized
+    for different domains like finance, healthcare, marketing, etc.
 
-    Attributes
-    ----------
-    _grids : dict
-        A dictionary mapping grid names to ImputationGrid instances, each containing
-        methods, modules, and parameter grids for specific imputation models.
-
-    Methods
-    -------
-    get(name: str) -> ImputationGrid
-        Retrieve a predefined parameter grid by name.
+    Available Grids
+    --------------
+    default
+        General-purpose configuration using a mix of methods.
+    finance
+        Optimized for financial data with emphasis on robustness.
+    healthcare
+        Focused on preserving distributions in medical data.
+    marketing
+        Handles mixed-type data common in marketing.
+    engineering
+        Configured for technical and sensor data.
+    risk_analysis
+        Conservative settings for risk-sensitive data.
     """
 
     _grids = {
-        "default": ImputationGrid(
+        "default": ImputationConfig(
             methods=[
-                'BayesianRidge',
-                'DecisionTreeRegressor',
-                'RandomForestRegressor',
-                'GradientBoostingRegressor',
+                "BayesianRidge",
+                "DecisionTreeRegressor",
+                "RandomForestRegressor",
+                "GradientBoostingRegressor",
             ],
             modules=[
-                'sklearn.linear_model',
-                'sklearn.tree',
-                'sklearn.ensemble',
-                'sklearn.ensemble',
+                "sklearn.linear_model",
+                "sklearn.tree",
+                "sklearn.ensemble",
+                "sklearn.ensemble",
             ],
             grids=[
-                ParameterGrid({'alpha': [1.0, 0.1, 0.01]}),
-                ParameterGrid({'max_depth': [None, 5, 10], 'min_samples_split': [2, 5]}),
-                ParameterGrid({'n_estimators': [10, 50], 'max_depth': [None, 5]}),
-                ParameterGrid({'learning_rate': [0.1, 0.01], 'n_estimators': [50, 100]}),
-            ]
+                ParameterGrid({"alpha": [1.0, 0.1, 0.01]}),
+                ParameterGrid(
+                    {"max_depth": [None, 5, 10], "min_samples_split": [2, 5]}
+                ),
+                ParameterGrid(
+                    {"n_estimators": [10, 50], "max_depth": [None, 5]}
+                ),
+                ParameterGrid(
+                    {"learning_rate": [0.1, 0.01], "n_estimators": [50, 100]}
+                ),
+            ],
         ),
-
-        "finance": ImputationGrid(
+        "sampling": ImputationConfig(
             methods=[
-                'IterativeImputer',
-                'KNNImputer',
-                'SimpleImputer',
+                "DistributionImputer",
             ],
             modules=[
-                'sklearn.impute',
-                'sklearn.impute',
-                'sklearn.impute',
+                "benson.imputation",
             ],
             grids=[
-                ParameterGrid({'estimator': ['BayesianRidge'], 'max_iter': [10, 50]}),
-                ParameterGrid({'n_neighbors': [3, 5, 10], 'weights': ['uniform', 'distance']}),
-                ParameterGrid({'strategy': ['mean', 'median']}),
-            ]
+                ParameterGrid({"random_state": np.arange(0, 100, 1)}),
+            ],
         ),
-
-        "healthcare": ImputationGrid(
-            methods=[
-                'KNNImputer',
-                'SimpleImputer',
-                'IterativeImputer',
-            ],
-            modules=[
-                'sklearn.impute',
-                'sklearn.impute',
-                'sklearn.impute',
-            ],
+        "finance": ImputationConfig(
+            methods=["IterativeImputer", "KNNImputer", "SimpleImputer"],
+            modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid({'n_neighbors': [5, 10], 'weights': ['distance']}),
-                ParameterGrid({'strategy': ['median', 'most_frequent']}),
-                ParameterGrid({'estimator': ['RandomForestRegressor'], 'max_iter': [10, 20]}),
-            ]
+                ParameterGrid(
+                    {"estimator": ["BayesianRidge"], "max_iter": [10, 50]}
+                ),
+                ParameterGrid(
+                    {
+                        "n_neighbors": [3, 5, 10],
+                        "weights": ["uniform", "distance"],
+                    }
+                ),
+                ParameterGrid({"strategy": ["mean", "median"]}),
+            ],
         ),
-
-        "marketing": ImputationGrid(
-            methods=[
-                'SimpleImputer',
-                'KNNImputer',
-                'IterativeImputer',
-            ],
-            modules=[
-                'sklearn.impute',
-                'sklearn.impute',
-                'sklearn.impute',
-            ],
+        "healthcare": ImputationConfig(
+            methods=["KNNImputer", "SimpleImputer", "IterativeImputer"],
+            modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid({'strategy': ['most_frequent', 'constant'], 'fill_value': ['unknown']}),
-                ParameterGrid({'n_neighbors': [3, 5], 'weights': ['uniform']}),
-                ParameterGrid({'estimator': ['GradientBoostingRegressor'], 'max_iter': [10, 30]}),
-            ]
+                ParameterGrid(
+                    {"n_neighbors": [5, 10], "weights": ["distance"]}
+                ),
+                ParameterGrid({"strategy": ["median", "most_frequent"]}),
+                ParameterGrid(
+                    {
+                        "estimator": ["RandomForestRegressor"],
+                        "max_iter": [10, 20],
+                    }
+                ),
+            ],
         ),
-
-        "engineering": ImputationGrid(
-            methods=[
-                'SimpleImputer',
-                'KNNImputer',
-                'IterativeImputer',
-            ],
-            modules=[
-                'sklearn.impute',
-                'sklearn.impute',
-                'sklearn.impute',
-            ],
+        "marketing": ImputationConfig(
+            methods=["SimpleImputer", "KNNImputer", "IterativeImputer"],
+            modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid({'strategy': ['mean', 'median']}),
-                ParameterGrid({'n_neighbors': [3, 5, 7], 'weights': ['distance']}),
-                ParameterGrid({'estimator': ['DecisionTreeRegressor'], 'max_iter': [10, 20]}),
-            ]
+                ParameterGrid(
+                    {
+                        "strategy": ["most_frequent", "constant"],
+                        "fill_value": ["unknown"],
+                    }
+                ),
+                ParameterGrid({"n_neighbors": [3, 5], "weights": ["uniform"]}),
+                ParameterGrid(
+                    {
+                        "estimator": ["GradientBoostingRegressor"],
+                        "max_iter": [10, 30],
+                    }
+                ),
+            ],
         ),
-
-        "risk_analysis": ImputationGrid(
-            methods=[
-                'IterativeImputer',
-                'SimpleImputer',
-            ],
-            modules=[
-                'sklearn.impute',
-                'sklearn.impute',
-            ],
+        "engineering": ImputationConfig(
+            methods=["SimpleImputer", "KNNImputer", "IterativeImputer"],
+            modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid({'estimator': ['BayesianRidge'], 'max_iter': [50, 100]}),
-                ParameterGrid({'strategy': ['median', 'most_frequent']}),
-            ]
+                ParameterGrid({"strategy": ["mean", "median"]}),
+                ParameterGrid(
+                    {"n_neighbors": [3, 5, 7], "weights": ["distance"]}
+                ),
+                ParameterGrid(
+                    {
+                        "estimator": ["DecisionTreeRegressor"],
+                        "max_iter": [10, 20],
+                    }
+                ),
+            ],
         ),
     }
 
     @classmethod
-    def get(cls, name: str) -> ImputationGrid:
+    def get(cls, name: str) -> ImputationConfig:
         """
-        Retrieve a predefined parameter grid by name.
+        Retrieve a predefined parameter grid.
 
         Parameters
         ----------
         name : str
-            The name of the desired parameter grid.
+            Name of the grid to retrieve (e.g., "default", "finance").
 
         Returns
         -------
-        ImputationGrid
-            An instance of ImputationGrid containing methods, modules, and parameter grids.
+        ImputationConfig
+            The requested parameter grid configuration.
         """
         return cls._grids.get(name, cls._grids["default"])
-    
-    
+
+
 class ProcessingGallery:
     """
-    A collection of predefined parameter grids for data preprocessing.
+    Collection of predefined preprocessing configurations.
 
-    This class provides predefined hyperparameter grids for various imputation
-    and transformation strategies tailored to different industries. It includes
-    methods for both numeric and categorical data preprocessing, utilizing
-    scikit-learn transformers and custom configurations for specific domains
-    such as finance, healthcare, marketing, engineering, and risk analysis.
+    This class provides domain-specific preprocessing settings optimized
+    for different types of data and industries.
 
-    Methods
-    -------
-    get(name, numeric_columns, categorical_columns)
-        Retrieve a predefined preprocessing pipeline by name, returning a
-        ColumnTransformer configured with the appropriate transformers for
-        the specified numeric and categorical columns.
+    Available Configurations
+    ----------------------
+    default
+        StandardScaler for general-purpose scaling.
+    finance
+        MinMaxScaler optimized for financial metrics.
+    healthcare
+        RobustScaler for handling medical outliers.
+    marketing
+        PowerTransformer for customer behavior data.
+    engineering
+        StandardScaler for technical measurements.
     """
 
     _numeric_methods = {
-        "default": PreprocessingConfig(
-            method='StandardScaler',
-        ),
+        "default": PreprocessingConfig(method="StandardScaler"),
         "finance": PreprocessingConfig(
-            method='MinMaxScaler',
-            params={'feature_range': [(0, 1)]}
+            method="MinMaxScaler", params={"feature_range": [(0, 1)]}
         ),
-        "healthcare": PreprocessingConfig(
-            method='RobustScaler',
-        ),
+        "healthcare": PreprocessingConfig(method="RobustScaler"),
         "marketing": PreprocessingConfig(
-            method='PowerTransformer',
-            params={'method': ['yeo-johnson']}
+            method="PowerTransformer", params={"method": ["yeo-johnson"]}
         ),
-        "engineering": PreprocessingConfig(
-            method='StandardScaler'
-        ),
-        "risk_analysis": PreprocessingConfig(
-            method='QuantileTransformer',
-            params={'n_quantiles': [100], 'output_distribution': ['normal']}
-        )
+        "engineering": PreprocessingConfig(method="StandardScaler"),
     }
 
     _categorical_methods = {
-        "default": PreprocessingConfig(
-            method='OneHotEncoder',
-        ),
+        "default": PreprocessingConfig(method="OneHotEncoder"),
         "finance": PreprocessingConfig(
-            method='OrdinalEncoder',
-            params={'handle_unknown': 'use_encoded_value', 'unknown_value': -1}
+            method="OneHotEncoder", params={"handle_unknown": ["ignore"]}
         ),
         "healthcare": PreprocessingConfig(
-            method='OneHotEncoder',
-            params={'sparse_output': [False]}
+            method="OrdinalEncoder",
+            params={"handle_unknown": ["use_encoded_value"]},
         ),
         "marketing": PreprocessingConfig(
-            method='TargetEncoder',
-            module='category_encoders',
-            params={'smoothing': [0.5], 'min_samples_leaf': [10]}
+            method="OneHotEncoder",
+            params={"sparse": [False], "handle_unknown": ["ignore"]},
         ),
-        "engineering": PreprocessingConfig(
-            method='OrdinalEncoder'
-        ),
-        "risk_analysis": PreprocessingConfig(
-            method='OneHotEncoder',
-            params={'drop': 'first'}
-        )
     }
 
     @classmethod
-    def get(cls, name: str) -> Dict[str,PreprocessingConfig]:
+    def get(cls, name: str = "default") -> Dict[str, PreprocessingConfig]:
         """
-        Retrieve a predefined preprocessing pipeline by name.
+        Get preprocessing configurations for numerical and categorical data.
 
         Parameters
         ----------
-        name : str
-            The name of the preprocessing pipeline.
-        numeric_columns : list
-            List of numeric column names.
-        categorical_columns : list
-            List of categorical column names.
+        name : str, default="default"
+            Name of the configuration set (e.g., "finance", "healthcare").
 
         Returns
         -------
-        ColumnTransformer
-            An instance of ColumnTransformer with configured transformers.
+        Dict[str, PreprocessingConfig]
+            Dictionary with "num" and "cat" preprocessing configurations.
         """
-        numeric = cls._numeric_methods.get(name, cls._numeric_methods["default"])
-        categorical = cls._categorical_methods.get(name, cls._categorical_methods["default"])
-        return {'num': numeric, 'cat': categorical}
+        return {
+            "num": cls._numeric_methods.get(
+                name, cls._numeric_methods["default"]
+            ),
+            "cat": cls._categorical_methods.get(
+                name, cls._categorical_methods["default"]
+            ),
+        }
+
 
 class MagicGallery:
     """
-    A collection of predefined magic configurations for data representations.
-    
-    This class provides predefined configurations for different topological data analysis methods,
-    allowing an agent to quickly apply a chosen method for feature transformation and data repair.
+    Collection of predefined magic method configurations.
+
+    This class provides configurations for different topological analysis
+    methods used to compare and select imputed datasets.
+
+    Available Methods
+    ---------------
+    ECT
+        Euler Characteristic Transform configurations.
     """
-    
-    _methods = {
-        "ECT": ECTConfig(
-            num_thetas=64,
-            radius=1.0,
-            resolution=64,
-            scale=500,
-            ect_fn="scaled_sigmoid",
-            seed=42
-        ),
-    }
-    
-    @classmethod
-    def get(cls, name: str) -> Magic:
+
+    @staticmethod
+    def get(method: str) -> BaseModel:
         """
-        Retrieve a predefined magic method configuration by name.
-        
+        Get configuration for a magic method.
+
         Parameters
         ----------
-        name : str
-            The name of the desired magic method.
-        
+        method : str
+            Name of the magic method (e.g., "ECT").
+
         Returns
         -------
-        Magic
-            A configured instance of the corresponding magic method.
+        BaseModel
+            Configuration object for the requested method.
+
+        Raises
+        ------
+        ValueError
+            If the requested method is not found.
         """
-        return cls._methods.get(name, ECT)
+        if method == "ECT":
+            return ECTConfig(
+                num_thetas=64,
+                radius=1.0,
+                resolution=100,
+                scale=500,
+                ect_fn="scaled_sigmoid",
+                seed=42,
+            )
+        raise ValueError(f"Unknown magic method: {method}")
