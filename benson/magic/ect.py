@@ -151,6 +151,7 @@ class ECT(Magic):
             radius=self.radius,
             resolution=self.resolution,
             scale=self.scale,
+            normalize=self.config.normalize,
         )
 
         # Transpose each ECT to have shape [num_thetas, resolution]

@@ -197,3 +197,50 @@ class TestECT:
         assert isinstance(tensor_3d, torch.Tensor)
         assert tensor_3d.shape == (10, 3)  # (2*5, 3)
         assert tensor_3d.dtype == torch.float32
+
+    def test_normalization(self):
+        """Test that normalization parameter affects the output."""
+        # Arrange
+        config_normalized = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            normalize=True,
+            seed=42,
+        )
+        config_unnormalized = ECTConfig(
+            num_thetas=8,
+            radius=1.0,
+            resolution=10,
+            scale=1,
+            normalize=False,
+            seed=42,
+        )
+
+        ect_normalized = ECT(config_normalized)
+        ect_unnormalized = ECT(config_unnormalized)
+
+        # Create some random point clouds
+        X = [np.random.rand(100, 2) for _ in range(3)]
+
+        # Act
+        result_normalized = ect_normalized.generate(X)
+        result_unnormalized = ect_unnormalized.generate(X)
+
+        # Assert
+        # Check that results are different when normalization is applied
+        for norm, unnorm in zip(result_normalized, result_unnormalized):
+            assert not np.allclose(
+                norm, unnorm
+            ), "Normalized and unnormalized outputs should be different"
+
+            # Normalized values should be between 0 and 1
+            assert np.all(norm >= 0) and np.all(
+                norm <= 1
+            ), "Normalized values should be between 0 and 1"
+
+            # Check shapes are the same
+            assert (
+                norm.shape == unnorm.shape
+            ), "Output shapes should be the same regardless of normalization"
