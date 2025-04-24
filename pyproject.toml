@@ -1,7 +1,9 @@
 [project]
 name = "benson"
 version = "0.1.0"
-authors = ["Krv Analytics <team@krv.ai>"]
+authors = [
+    {name = "Krv Analytics", email = "team@krv.ai"}
+]
 description = "A multiverse data cleaning tool for agent pickup."
 readme = "README.md"
 requires-python = ">=3.12"
