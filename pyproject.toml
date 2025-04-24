@@ -16,12 +16,16 @@ dependencies = [
     "torch>=2.6.0",
 ]
 
+[project.packages]
+find = {where = ["benson"]}
+
 [tool.uv.sources]
-dect = { git = "https://github.com/aidos-lab/dect.git", rev = "36df413b95d4812ab904b268e0b7b0d2fda08564" }
+dect = { git = "https://github.com/aidos-lab/dect.git" }
 
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
+    "pdoc>=15.0.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",

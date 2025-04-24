@@ -1,29 +1,18 @@
 """
-Benson: Advanced Data Imputation Framework
-========================================
+Benson is the powerhouse behind `Phil`, the advanced imputation engine designed to intelligently handle missing data in complex datasets. Whether you're dealing with high-dimensional gaps, inconsistent encodings, or stubborn anomalies, Benson ensures your data gets the cleanup it deserves—efficiently and at scale.
 
-Benson is a powerful Python library for intelligent data imputation, designed to handle
-complex missing data scenarios in high-dimensional datasets. It combines advanced statistical
-methods with topological data analysis to provide robust and accurate imputations.
+🔥 **Capabilities**
 
-Key Components
--------------
-* Phil: Progressive High-dimensional Imputation Lab
-  The core engine that combines iterative imputation with topological analysis.
+• Phil 🧩: PHIL: a Progressive High-Dimensional Imputation Lab.
 
-* Distribution-Preserving Imputation
-  Statistical methods that maintain the original data distribution properties.
+👉 Phil is an advanced data imputation tool that combines scikit-learn's IterativeImputer with topological methods to generate and analyze multiple versions of a dataset. It allows users to impute missing data using various techniques, generate representations of imputed datasets, and democratically select a representative version.
 
-* Magic Methods
-  Topological data analysis tools for evaluating imputation quality.
+🚀 **Coming Soon**
 
-Main Features
-------------
-- Multiple imputation strategies with automatic selection
-- Distribution-preserving imputation methods
-- Topological data analysis for quality assessment
-- Support for both numerical and categorical data
-- Scalable to high-dimensional datasets
+• Bob 🛠️: A structured data repair module that cleans, normalizes, and reconciles inconsistencies in your datasets.
+
+• AgentBenson 🤖: A seamless integration layer for popular agentic frameworks, enabling automated data cleaning and repair with minimal intervention.
+
 
 Example
 -------
@@ -38,27 +27,23 @@ The library automatically handles:
 - Quality assessment
 - Representative imputation selection
 
-See Also
---------
-* Documentation: <link to documentation>
-* Source Code: https://github.com/<organization>/benson
 """
 
-from .imputation import (
-    DistributionImputer,
+from benson.imputation import (
     ImputationConfig,
     PreprocessingConfig,
+    DistributionImputer,
 )
-from .phil import Phil
-from .magic import Magic, ECT, ECTConfig
+
+from benson.magic import ECT
+from benson.phil import Phil
+
+from benson.gallery import GridGallery
+
 
 __version__ = "0.1.0"
 __all__ = [
     "Phil",
-    "DistributionImputer",
-    "ImputationConfig",
-    "PreprocessingConfig",
-    "Magic",
+    "GridGallery",
     "ECT",
-    "ECTConfig",
 ]
