@@ -323,11 +323,23 @@ class Phil:
         self.closest_index = self._select_representative(self.magic_descriptors)
         X = self.representations[self.closest_index]
         # get imputed column labels from Pipeline
-        pipeline = self.selected_imputers[self.closest_index]
+        self.pipeline = self.selected_imputers[self.closest_index]
         imputed_columns = self._get_imputed_columns(
-            transformer=pipeline["preprocessor"]
+            transformer=self.pipeline["preprocessor"]
         )
         return pd.DataFrame(X, columns=imputed_columns)
+
+    def transform(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
+        """Imputes missing values in the input DataFrame using the fitted pipeline."""
+        if not hasattr(self, "pipeline"):
+            raise RuntimeError("Pipeline not fitted. Call fit_transform first.")
+
+        imputed_columns = self._get_imputed_columns(
+            transformer=self.pipeline["preprocessor"]
+        )
+        return pd.DataFrame(
+            self.pipeline.transform(df), columns=imputed_columns
+        )
 
     @staticmethod
     def _get_imputed_columns(transformer: ColumnTransformer) -> List[str]:
@@ -338,11 +350,13 @@ class Phil:
     def _select_representative(descriptors: List[np.ndarray]) -> int:
         """Finds the descriptor closest to the mean representation."""
         avg_descriptor = np.mean(descriptors, axis=0)
-        return np.argmin(
-            [
-                np.linalg.norm(descriptor - avg_descriptor)
-                for descriptor in descriptors
-            ]
+        return int(
+            np.argmin(
+                [
+                    np.linalg.norm(descriptor - avg_descriptor)
+                    for descriptor in descriptors
+                ]
+            )
         )
 
     @staticmethod
