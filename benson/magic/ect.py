@@ -8,7 +8,7 @@ tools for analyzing the topological structure of imputed datasets.
 from typing import List
 import torch
 from dect.directions import generate_uniform_directions
-from dect.ect import compute_ect
+from dect.ect import compute_ect_point_cloud
 import numpy as np
 import dect.ect_fn as ECT_FNs
 
@@ -101,7 +101,6 @@ class ECT(Magic):
             else:
                 raise ValueError(f"Invalid configuration key: {key}")
 
-        self.ect_fn = getattr(ECT_FNs, self.ect_fn, ECT_FNs.scaled_sigmoid)
         self.device = self._check_device(force_cpu=True)
 
     def generate(self, X: List[np.ndarray]) -> List[np.ndarray]:
@@ -133,12 +132,12 @@ class ECT(Magic):
             raise ValueError("Input cannot be empty")
 
         try:
-            X_tensor = self._convert_to_tensor(X)
+            # Convert to batched tensor format [B,N,D]
+            batch_tensor = torch.stack([torch.from_numpy(x).float() for x in X])
         except RuntimeError as e:
             raise ValueError(f"Invalid input data format") from e
 
-        dim = X_tensor.shape[1]
-        print(self.num_thetas)
+        dim = batch_tensor.shape[-1]
         directions = generate_uniform_directions(
             num_thetas=self.num_thetas,
             d=dim,
@@ -146,18 +145,16 @@ class ECT(Magic):
             seed=self.seed,
         )
 
-        print(f"Tensor Shape: {X_tensor.shape}")
-        print(f"Directions Shape: {directions.shape}")
-        ect = compute_ect(
-            x=X_tensor,
+        ect = compute_ect_point_cloud(
+            x=batch_tensor,
             v=directions,
             radius=self.radius,
             resolution=self.resolution,
             scale=self.scale,
-            ect_fn=self.ect_fn,
         )
 
-        return self._convert_to_numpy(ect)
+        # Transpose each ECT to have shape [num_thetas, resolution]
+        return [x.T.numpy() for x in ect]
 
     @staticmethod
     def _convert_to_tensor(X: List[np.ndarray]) -> torch.Tensor:
@@ -177,25 +174,8 @@ class ECT(Magic):
             - N is the number of samples in each array
             - d is the dimension of each sample
         """
-        return torch.cat([torch.from_numpy(x).float() for x in X], dim=0)
-
-    @staticmethod
-    def _convert_to_numpy(tensor: torch.Tensor) -> List[np.ndarray]:
-        """Convert PyTorch tensor to a list of numpy arrays.
-
-        Parameters
-        ----------
-        tensor : torch.Tensor
-            Input tensor with shape (num_thetas, resolution)
-            or shape (batch_size, num_thetas, resolution)
-
-        Returns
-        -------
-        List[np.ndarray]
-            List of numpy arrays, each with shape (num_thetas, resolution)
-        """
-        numpy_array = tensor.cpu().numpy()
-        return [numpy_array[i] for i in range(len(numpy_array))]
+        tensors = [torch.from_numpy(x).float() for x in X]
+        return torch.cat(tensors, dim=0)
 
     @staticmethod
     def _check_device(force_cpu: bool = False) -> str:

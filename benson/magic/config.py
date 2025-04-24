@@ -33,12 +33,6 @@ class ECTConfig(BaseModel):
         Scaling factor for the input point cloud.
         Adjusts the spatial scale of the analysis.
 
-    ect_fn : str
-        Name of the ECT function to use. Available options:
-        - "scaled_sigmoid": Scaled sigmoid function (recommended)
-        - "gaussian": Gaussian function
-        - Other functions available in dect.ect_fn
-
     seed : int, default=0
         Random seed for reproducible direction sampling.
 
@@ -55,7 +49,6 @@ class ECTConfig(BaseModel):
     ...     radius=1.0,
     ...     resolution=100,
     ...     scale=500,
-    ...     ect_fn="scaled_sigmoid",
     ...     seed=42
     ... )
     """
@@ -64,5 +57,4 @@ class ECTConfig(BaseModel):
     radius: float = Field(..., description="Maximum radius for filtration")
     resolution: int = Field(..., description="Number of points per direction")
     scale: int = Field(..., description="Scaling factor for point cloud")
-    ect_fn: str = Field(..., description="ECT function name")
     seed: int = Field(0, description="Random seed for reproducibility")

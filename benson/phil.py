@@ -318,6 +318,8 @@ class Phil:
     ) -> pd.DataFrame:
         self.representations = self.impute(df, max_iter)
         self.magic_descriptors = self.generate_descriptors()
+
+        assert len(self.representations) == len(self.magic_descriptors)
         self.closest_index = self._select_representative(self.magic_descriptors)
         X = self.representations[self.closest_index]
         # get imputed column labels from Pipeline

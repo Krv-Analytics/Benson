@@ -58,7 +58,7 @@ class Magic(ABC):
         self.config = config
 
     @abstractmethod
-    def generate(self, data: List[np.ndarray]) -> np.ndarray:
+    def generate(self, data: List[np.ndarray]) -> List[np.ndarray]:
         """
         Generate a topological descriptor for the input data.
 
