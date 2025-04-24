@@ -188,14 +188,14 @@ class TestECT:
         X_batch_2d = [np.random.rand(10, 2) for _ in range(3)]
         tensor_2d = ect._convert_to_tensor(X_batch_2d)
         assert isinstance(tensor_2d, torch.Tensor)
-        assert tensor_2d.shape == (30, 2)  # (3*10, 2)
+        assert tensor_2d.shape == (3, 10, 2)
         assert tensor_2d.dtype == torch.float32
 
         # Test with 3D point clouds
         X_batch_3d = [np.random.rand(5, 3) for _ in range(2)]
         tensor_3d = ect._convert_to_tensor(X_batch_3d)
         assert isinstance(tensor_3d, torch.Tensor)
-        assert tensor_3d.shape == (10, 3)  # (2*5, 3)
+        assert tensor_3d.shape == (2, 5, 3)
         assert tensor_3d.dtype == torch.float32
 
     def test_normalization(self):
