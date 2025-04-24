@@ -175,7 +175,7 @@ class ECT(Magic):
             - d is the dimension of each sample
         """
         tensors = [torch.from_numpy(x).float() for x in X]
-        return torch.cat(tensors, dim=0)
+        return torch.stack(tensors, dim=0)
 
     @staticmethod
     def _check_device(force_cpu: bool = False) -> str:
