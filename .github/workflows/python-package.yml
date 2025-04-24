@@ -31,4 +31,5 @@ jobs:
           uv sync
       - name: Test with pytest
         run: |
-          pytest
+          source .venv/bin/activate
+          python -m pytest
