@@ -16,8 +16,12 @@ dependencies = [
     "torch>=2.6.0",
 ]
 
-[project.packages]
-find = {where = ["benson"]}
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = {include = ["benson", "benson.*"]}
 
 [tool.uv.sources]
 dect = { git = "https://github.com/aidos-lab/dect.git" }
