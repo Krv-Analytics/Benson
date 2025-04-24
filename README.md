@@ -11,6 +11,7 @@ Benson is the powerhouse behind `Phil`, the advanced imputation engine designed 
 🚀 Coming Soon
 
 • Bob 🛠️: A structured data repair module that cleans, normalizes, and reconciles inconsistencies in your datasets.
+
 • AgentBenson 🤖: A seamless integration layer for popular agentic frameworks, enabling automated data cleaning and repair with minimal intervention.
 
 Stay tuned for more updates as Benson continues to evolve!
