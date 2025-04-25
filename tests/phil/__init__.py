@@ -9,7 +9,7 @@ from tests.phil.test_config import TestPhilConfigBehavior
 from tests.phil.test_descriptors import TestPhilDescriptorBehavior
 from tests.phil.test_imputation import TestPhilImputationBehavior
 from tests.phil.test_initialization import TestPhilInitializationBehavior
-from tests.phil.test_transform import TestPhilTransformBehavior
+from tests.phil.test_fit import TestPhilFitBehavior
 
 __all__ = [
     "TestPhilColumnBehavior",
@@ -17,5 +17,5 @@ __all__ = [
     "TestPhilDescriptorBehavior",
     "TestPhilImputationBehavior",
     "TestPhilInitializationBehavior",
-    "TestPhilTransformBehavior",
+    "TestPhilFitBehavior",
 ]

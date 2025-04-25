@@ -6,10 +6,10 @@ import numpy as np
 from benson.phil import Phil
 
 
-class TestPhilTransformBehavior:
+class TestPhilFitBehavior:
     """Tests for Phil's transform behavior."""
 
-    def test_fit_transform_returns_imputed_dataframe_numeric(self, mocker):
+    def test_fit_returns_imputed_dataframe_numeric(self, mocker):
         # Create a test dataframe with missing values
         df = pd.DataFrame({"A": [1, 2, np.nan, 4], "B": [5, np.nan, 7, 8]})
 
@@ -36,7 +36,7 @@ class TestPhilTransformBehavior:
         mock_pipeline.named_steps = {"imputer": mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
-        result = phil.fit_transform(df)
+        result = phil.fit(df)
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (4, 2)
@@ -44,7 +44,7 @@ class TestPhilTransformBehavior:
         phil.impute.assert_called_once_with(df, 5)
         assert phil.closest_index == 0
 
-    def test_fit_transform_imputes_missing_values_mixed_types(self, mocker):
+    def test_fit_imputes_missing_values_mixed_types(self, mocker):
         df = pd.DataFrame(
             {
                 "num_col": [1.0, 2.0, np.nan, 4.0],
@@ -80,7 +80,7 @@ class TestPhilTransformBehavior:
         mock_pipeline.named_steps = {"imputer": mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
-        result = phil.fit_transform(df)
+        result = phil.fit(df)
 
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (4, 2)
@@ -88,7 +88,7 @@ class TestPhilTransformBehavior:
         phil.impute.assert_called_once_with(df, 5)
         assert phil.closest_index == 0
 
-    def test_fit_transform_raises_error_with_no_missing_values(self, mocker):
+    def test_fit_raises_error_with_no_missing_values(self, mocker):
         df = pd.DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]})
 
         phil = Phil()
@@ -103,11 +103,11 @@ class TestPhilTransformBehavior:
         with pytest.raises(
             ValueError, match="No missing values found in the input DataFrame."
         ):
-            phil.fit_transform(df)
+            phil.fit(df)
 
         phil.impute.assert_called_once_with(df, 5)
 
-    def test_fit_transform_with_various_max_iter(self, mocker):
+    def test_fit_with_various_max_iter(self, mocker):
         df = pd.DataFrame({"A": [1, 2, np.nan, 4], "B": [5, np.nan, 7, 8]})
 
         phil = Phil()
@@ -133,8 +133,8 @@ class TestPhilTransformBehavior:
         phil.selected_imputers = [mock_pipeline]
 
         # Test with different max_iter values
-        result_5 = phil.fit_transform(df, max_iter=5)
-        result_10 = phil.fit_transform(df, max_iter=10)
+        result_5 = phil.fit(df, max_iter=5)
+        result_10 = phil.fit(df, max_iter=10)
 
         assert isinstance(result_5, pd.DataFrame)
         assert result_5.shape == (4, 2)
