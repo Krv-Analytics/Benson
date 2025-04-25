@@ -11,7 +11,7 @@ from tests.phil import (
     TestPhilDescriptorBehavior,
     TestPhilImputationBehavior,
     TestPhilInitializationBehavior,
-    TestPhilTransformBehavior,
+    TestPhilFitBehavior,
 )
 from tests.imputation import TestDistributionImputer
 from tests.magic import TestMagic, TestECT
@@ -23,7 +23,7 @@ __all__ = [
     "TestPhilDescriptorBehavior",
     "TestPhilImputationBehavior",
     "TestPhilInitializationBehavior",
-    "TestPhilTransformBehavior",
+    "TestPhilFitBehavior",
     # Other tests
     "TestDistributionImputer",
     "TestMagic",

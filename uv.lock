@@ -110,8 +110,8 @@ wheels = [
 
 [[package]]
 name = "benson"
-version = "0.1.0"
-source = { virtual = "." }
+version = "0.1.1"
+source = { editable = "." }
 dependencies = [
     { name = "dect" },
     { name = "pandas" },

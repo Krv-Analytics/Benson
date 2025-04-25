@@ -149,17 +149,24 @@ class Phil:
 
     def impute(self, df: pd.DataFrame, max_iter: int = 10) -> List[np.ndarray]:
         """
+        Generate multiple imputed versions of a dataset with missing values.
+
         Parameters
         ----------
         df : pandas.DataFrame
             DataFrame containing missing values to be imputed.
         max_iter : int, optional
-            Maximum number of iterations for the IterativeImputer, by default 10.
+            Maximum number of iterations for the IterativeImputer, default is 10.
 
         Returns
         -------
-        list of pandas.DataFrame
-            A list of DataFrames with imputed values.
+        List[np.ndarray]
+            A list of numpy arrays with imputed values.
+
+        Raises
+        ------
+        ValueError
+            If the input DataFrame has no missing values.
 
         Notes
         -----
@@ -180,6 +187,8 @@ class Phil:
     @staticmethod
     def _identify_column_types(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
         """
+        Identify categorical and numerical columns in a DataFrame.
+
         Parameters
         ----------
         df : pandas.DataFrame
@@ -187,7 +196,7 @@ class Phil:
 
         Returns
         -------
-        tuple of list of str
+        Tuple[List[str], List[str]]
             A tuple containing two lists:
             - The first list contains the names of categorical columns.
             - The second list contains the names of numerical columns.
@@ -197,7 +206,7 @@ class Phil:
         >>> import pandas as pd
         >>> data = {'col1': [1, 2, 3], 'col2': ['a', 'b', 'c'], 'col3': [1.1, 2.2, 3.3]}
         >>> df = pd.DataFrame(data)
-        >>> _identify_column_types(df)
+        >>> Phil._identify_column_types(df)
         (['col2'], ['col1', 'col3'])
         """
         categorical_columns = df.select_dtypes(
@@ -253,14 +262,51 @@ class Phil:
 
     @staticmethod
     def _import_model(module: str, method: str):
-        """Dynamically imports a model from a specified module."""
+        """
+        Dynamically imports a model from a specified module.
+
+        Parameters
+        ----------
+        module : str
+            The name of the module to import from.
+        method : str
+            The name of the class or function to import from the module.
+
+        Returns
+        -------
+        object
+            The imported class or function.
+
+        Raises
+        ------
+        ImportError
+            If the module cannot be imported.
+        AttributeError
+            If the method cannot be found in the module.
+        """
         imported_module = importlib.import_module(module)
         return getattr(imported_module, method)
 
     def _build_pipeline(
         self, preprocessor: ColumnTransformer, estimator, max_iter: int
     ) -> Pipeline:
-        """Builds an imputation pipeline with a given estimator."""
+        """
+        Builds an imputation pipeline with a given estimator.
+
+        Parameters
+        ----------
+        preprocessor : ColumnTransformer
+            Data preprocessing transformer to handle different column types.
+        estimator : object
+            The estimator to use in the IterativeImputer.
+        max_iter : int
+            Maximum number of iterations for the IterativeImputer.
+
+        Returns
+        -------
+        Pipeline
+            A scikit-learn Pipeline containing the preprocessor and IterativeImputer.
+        """
         return Pipeline(
             [
                 ("preprocessor", preprocessor),
@@ -276,7 +322,25 @@ class Phil:
         )
 
     def _select_imputations(self, imputers: List[Pipeline]) -> List[Pipeline]:
-        """Randomly selects a subset of imputers to run."""
+        """
+        Randomly selects a subset of imputers to run.
+
+        Parameters
+        ----------
+        imputers : List[Pipeline]
+            A list of scikit-learn Pipeline objects, each containing preprocessing
+            and imputation steps.
+
+        Returns
+        -------
+        List[Pipeline]
+            A randomly selected subset of imputation pipelines, with size determined
+            by self.samples attribute.
+
+        Notes
+        -----
+        Uses the random_state attribute for reproducible sampling.
+        """
         np.random.seed(self.random_state)
         selected_idxs = np.random.choice(
             range(len(imputers)),
@@ -288,7 +352,25 @@ class Phil:
     def _apply_imputations(
         self, df: pd.DataFrame, imputers: List[Pipeline]
     ) -> List[np.ndarray]:
-        """Applies imputers to the dataset."""
+        """
+        Applies multiple imputation pipelines to the dataset.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame containing missing values to be imputed.
+        imputers : List[Pipeline]
+            List of scikit-learn Pipeline objects to apply to the data.
+
+        Returns
+        -------
+        List[np.ndarray]
+            List of numpy arrays containing imputed datasets.
+
+        Notes
+        -----
+        Suppresses convergence warnings during the imputation process.
+        """
         imputations = []
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=ConvergenceWarning)
@@ -313,9 +395,30 @@ class Phil:
         """
         return self.magic.generate(self.representations)
 
-    def fit_transform(
-        self, df: pd.DataFrame, max_iter: int = 5
-    ) -> pd.DataFrame:
+    def fit(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
+        """
+        Fit the imputation model to the data and return the best imputed dataset.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame containing missing values to be imputed.
+        max_iter : int, optional
+            Maximum number of iterations for the IterativeImputer, default is 5.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The best representative imputed dataset selected using topological analysis.
+
+        Notes
+        -----
+        This method performs the complete imputation workflow:
+        1. Generates multiple imputed versions of the dataset
+        2. Creates topological descriptors for each imputation
+        3. Selects the most representative imputation
+        4. Stores the corresponding pipeline for later use with transform()
+        """
         self.representations = self.impute(df, max_iter)
         self.magic_descriptors = self.generate_descriptors()
 
@@ -330,9 +433,32 @@ class Phil:
         return pd.DataFrame(X, columns=imputed_columns)
 
     def transform(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
-        """Imputes missing values in the input DataFrame using the fitted pipeline."""
+        """
+        Imputes missing values in the input DataFrame using the fitted pipeline.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            DataFrame containing missing values to be imputed.
+        max_iter : int, optional
+            Maximum number of iterations for the imputer, default is 5.
+
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with imputed values.
+
+        Raises
+        ------
+        RuntimeError
+            If the method is called before fitting the model.
+
+        Notes
+        -----
+        Uses the pipeline selected during the fit method to transform new data.
+        """
         if not hasattr(self, "pipeline"):
-            raise RuntimeError("Pipeline not fitted. Call fit_transform first.")
+            raise RuntimeError("Pipeline not fitted. Call `fit` first.")
 
         imputed_columns = self._get_imputed_columns(
             transformer=self.pipeline["preprocessor"]
@@ -343,12 +469,41 @@ class Phil:
 
     @staticmethod
     def _get_imputed_columns(transformer: ColumnTransformer) -> List[str]:
-        """Retrieves the imputed column labels from the pipeline."""
+        """
+        Retrieves the imputed column labels from the pipeline.
+
+        Parameters
+        ----------
+        transformer : ColumnTransformer
+            The column transformer from the pipeline's preprocessor.
+
+        Returns
+        -------
+        List[str]
+            List of column names after preprocessing transformations.
+        """
         return transformer.get_feature_names_out()
 
     @staticmethod
     def _select_representative(descriptors: List[np.ndarray]) -> int:
-        """Finds the descriptor closest to the mean representation."""
+        """
+        Finds the descriptor closest to the mean representation.
+
+        Parameters
+        ----------
+        descriptors : List[np.ndarray]
+            List of topological descriptors for each imputed dataset.
+
+        Returns
+        -------
+        int
+            Index of the descriptor that is closest to the mean of all descriptors,
+            representing the most central imputation.
+
+        Notes
+        -----
+        Uses Euclidean distance to determine proximity to the mean descriptor.
+        """
         avg_descriptor = np.mean(descriptors, axis=0)
         return int(
             np.argmin(
@@ -361,7 +516,29 @@ class Phil:
 
     @staticmethod
     def _configure_magic_method(magic: str, config) -> Tuple[BaseModel, Magic]:
-        """Configures the topological method."""
+        """
+        Configures the topological method for representation learning.
+
+        Parameters
+        ----------
+        magic : str
+            Name of the magic method to use for topological analysis.
+        config : BaseModel or None
+            Configuration for the chosen magic method. If None, a default
+            configuration will be retrieved from MagicGallery.
+
+        Returns
+        -------
+        Tuple[BaseModel, Magic]
+            A tuple containing:
+            - The configuration object for the magic method
+            - The instantiated magic method object
+
+        Raises
+        ------
+        ValueError
+            If the specified magic method is not found.
+        """
         magic_method = getattr(METHODS, magic, None)
         if magic_method is None:
             raise ValueError(f"Magic method '{magic}' not found.")
@@ -371,7 +548,28 @@ class Phil:
 
     @staticmethod
     def _configure_param_grid(param_grid) -> ImputationConfig:
-        """Retrieves the imputation parameter grid."""
+        """
+        Retrieves the imputation parameter grid.
+
+        Parameters
+        ----------
+        param_grid : str, ImputationConfig, BaseModel, or dict
+            The parameter grid specification. Can be:
+            - str: A string identifier for a predefined grid in GridGallery
+            - ImputationConfig: An already configured imputation configuration
+            - BaseModel: A Pydantic model containing methods, modules, and grids
+            - dict: A dictionary with keys 'methods', 'modules', and 'grids'
+
+        Returns
+        -------
+        ImputationConfig
+            The configured imputation parameter grid.
+
+        Raises
+        ------
+        ValueError
+            If the parameter grid specification is invalid or missing required fields.
+        """
         if isinstance(param_grid, str):
             return GridGallery.get(param_grid)
         if isinstance(param_grid, ImputationConfig):
@@ -407,7 +605,30 @@ class Phil:
         categorical_columns: List[str],
         numerical_columns: List[str],
     ) -> ColumnTransformer:
-        """Configures the preprocessing pipeline."""
+        """
+        Configures the preprocessing pipeline for different column types.
+
+        Parameters
+        ----------
+        strategy : str
+            Identifier for the preprocessing strategy to use from ProcessingGallery.
+        categorical_columns : List[str]
+            List of categorical column names in the dataset.
+        numerical_columns : List[str]
+            List of numerical column names in the dataset.
+
+        Returns
+        -------
+        ColumnTransformer
+            A scikit-learn ColumnTransformer configured with appropriate transformers
+            for both categorical and numerical columns.
+
+        Raises
+        ------
+        RuntimeError
+            If there's an error importing or initializing a model from the
+            preprocessing configuration.
+        """
         strategy = ProcessingGallery.get(strategy)
         transformers: List[Tuple[str, Any, List[str]]] = []
 
