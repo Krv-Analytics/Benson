@@ -313,9 +313,7 @@ class Phil:
         """
         return self.magic.generate(self.representations)
 
-    def fit_transform(
-        self, df: pd.DataFrame, max_iter: int = 5
-    ) -> pd.DataFrame:
+    def fit(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
         self.representations = self.impute(df, max_iter)
         self.magic_descriptors = self.generate_descriptors()
 
@@ -332,7 +330,7 @@ class Phil:
     def transform(self, df: pd.DataFrame, max_iter: int = 5) -> pd.DataFrame:
         """Imputes missing values in the input DataFrame using the fitted pipeline."""
         if not hasattr(self, "pipeline"):
-            raise RuntimeError("Pipeline not fitted. Call fit_transform first.")
+            raise RuntimeError("Pipeline not fitted. Call `fit` first.")
 
         imputed_columns = self._get_imputed_columns(
             transformer=self.pipeline["preprocessor"]
