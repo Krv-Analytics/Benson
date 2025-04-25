@@ -1,10 +1,10 @@
-name: website
+name: pages
 
 # build the documentation whenever there are new commits on main
 on:
   push:
     branches:
-      - docs
+      - main
 
 # security: restrict permissions for CI jobs.
 permissions:

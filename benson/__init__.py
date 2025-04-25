@@ -37,6 +37,7 @@ from benson.imputation import (
 
 from benson.magic import ECT
 from benson.phil import Phil
+from benson.transformers import PhilTransformer
 
 from benson.gallery import GridGallery
 
@@ -44,6 +45,7 @@ from benson.gallery import GridGallery
 __version__ = "0.1.0"
 __all__ = [
     "Phil",
+    "PhilTransformer",
     "GridGallery",
     "ECT",
 ]
