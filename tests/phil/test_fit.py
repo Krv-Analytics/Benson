@@ -1,4 +1,4 @@
-"""Tests for Phil's transform functionality."""
+"""Tests for Phil's fit behavior."""
 
 import pytest
 import pandas as pd
