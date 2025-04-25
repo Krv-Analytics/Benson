@@ -4,7 +4,7 @@ name: pages
 on:
   push:
     branches:
-      - docs
+      - main
 
 # security: restrict permissions for CI jobs.
 permissions:
