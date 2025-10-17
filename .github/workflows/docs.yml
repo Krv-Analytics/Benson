@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 # security: restrict permissions for CI jobs.
 permissions:
@@ -25,12 +28,14 @@ jobs:
       - run: pdoc -d numpy benson benson.imputation benson.magic --logo https://krv.ai/images/logo/logo-light.svg -o docs/api
 
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push'
         with:
           path: docs/api
 
   # Deploy the artifact to GitHub pages.
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
   deploy:
+    if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
     permissions:
