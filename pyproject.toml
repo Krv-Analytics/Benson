@@ -8,7 +8,7 @@ description = "A multiverse data cleaning tool for agent pickup."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "dect @ git+https://github.com/aidos-lab/dect.git",
+    "dect",
     "pandas>=2.2.3",
     "pydantic>=2.10.6",
     "scikit-learn>=1.6.1",
