@@ -23,9 +23,18 @@ jobs:
         with:
           python-version: "3.13"
 
-      # Install dependencies and documentation tools
-      - run: python -m pip install -r requirements.txt
-      - run: pdoc -d numpy benson benson.imputation benson.magic --logo https://avatars.githubusercontent.com/u/137914328?s=400&u=5729f198e370a8b752fdff84464c7ca607d77324&v=4 -o docs/api
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+
+      - name: Build documentation
+        run: |
+          uv run pdoc -d numpy benson benson.imputation benson.magic --logo https://avatars.githubusercontent.com/u/137914328\?s\=400\&u\=5729f198e370a8b752fdff84464c7ca607d77324\&v\=4 -o docs/api
 
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'push'
