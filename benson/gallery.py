@@ -50,9 +50,7 @@ class GridGallery:
                 ParameterGrid(
                     {"max_depth": [None, 5, 10], "min_samples_split": [2, 5]}
                 ),
-                ParameterGrid(
-                    {"n_estimators": [10, 50], "max_depth": [None, 5]}
-                ),
+                ParameterGrid({"n_estimators": [10, 50], "max_depth": [None, 5]}),
                 ParameterGrid(
                     {"learning_rate": [0.1, 0.01], "n_estimators": [50, 100]}
                 ),
@@ -73,9 +71,7 @@ class GridGallery:
             methods=["IterativeImputer", "KNNImputer", "SimpleImputer"],
             modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid(
-                    {"estimator": ["BayesianRidge"], "max_iter": [10, 50]}
-                ),
+                ParameterGrid({"estimator": ["BayesianRidge"], "max_iter": [10, 50]}),
                 ParameterGrid(
                     {
                         "n_neighbors": [3, 5, 10],
@@ -89,9 +85,7 @@ class GridGallery:
             methods=["KNNImputer", "SimpleImputer", "IterativeImputer"],
             modules=["sklearn.impute"] * 3,
             grids=[
-                ParameterGrid(
-                    {"n_neighbors": [5, 10], "weights": ["distance"]}
-                ),
+                ParameterGrid({"n_neighbors": [5, 10], "weights": ["distance"]}),
                 ParameterGrid({"strategy": ["median", "most_frequent"]}),
                 ParameterGrid(
                     {
@@ -125,9 +119,7 @@ class GridGallery:
             modules=["sklearn.impute"] * 3,
             grids=[
                 ParameterGrid({"strategy": ["mean", "median"]}),
-                ParameterGrid(
-                    {"n_neighbors": [3, 5, 7], "weights": ["distance"]}
-                ),
+                ParameterGrid({"n_neighbors": [3, 5, 7], "weights": ["distance"]}),
                 ParameterGrid(
                     {
                         "estimator": ["DecisionTreeRegressor"],
@@ -220,9 +212,7 @@ class ProcessingGallery:
             Dictionary with "num" and "cat" preprocessing configurations.
         """
         return {
-            "num": cls._numeric_methods.get(
-                name, cls._numeric_methods["default"]
-            ),
+            "num": cls._numeric_methods.get(name, cls._numeric_methods["default"]),
             "cat": cls._categorical_methods.get(
                 name, cls._categorical_methods["default"]
             ),

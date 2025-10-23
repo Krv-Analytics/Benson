@@ -93,9 +93,7 @@ class TestPhilDescriptorBehavior:
 
             # Verify each result matches expected output
             for i, desc in enumerate(result):
-                assert desc == np.array(
-                    [i + 1]
-                )  # Based on our mock's side_effect
+                assert desc == np.array([i + 1])  # Based on our mock's side_effect
 
     def test_generate_descriptors_handles_empty_representations(self, mocker):
         """Test that generate_descriptors handles empty representations appropriately."""

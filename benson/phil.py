@@ -255,9 +255,7 @@ class Phil:
                     if k in model.__init__.__code__.co_varnames
                 }
                 estimator = model(**compatible_params)
-                imputers.append(
-                    self._build_pipeline(preprocessor, estimator, max_iter)
-                )
+                imputers.append(self._build_pipeline(preprocessor, estimator, max_iter))
         return imputers
 
     @staticmethod
@@ -463,9 +461,7 @@ class Phil:
         imputed_columns = self._get_imputed_columns(
             transformer=self.pipeline["preprocessor"]
         )
-        return pd.DataFrame(
-            self.pipeline.transform(df), columns=imputed_columns
-        )
+        return pd.DataFrame(self.pipeline.transform(df), columns=imputed_columns)
 
     @staticmethod
     def _get_imputed_columns(transformer: ColumnTransformer) -> List[str]:
@@ -587,9 +583,7 @@ class Phil:
                 grids=param_grid.grids,
             )
         if isinstance(param_grid, dict):
-            if not all(
-                key in param_grid for key in ["methods", "modules", "grids"]
-            ):
+            if not all(key in param_grid for key in ["methods", "modules", "grids"]):
                 raise ValueError("Invalid parameter grid configuration.")
             data = {
                 k: v

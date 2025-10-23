@@ -179,9 +179,7 @@ class DistributionImputer(BaseEstimator):
             else:
                 return np.full(n_samples, np.nan, dtype=float)
 
-        predictions = self.rng_.choice(
-            self.distribution_, size=n_samples, replace=True
-        )
+        predictions = self.rng_.choice(self.distribution_, size=n_samples, replace=True)
 
         # Ensure predictions match the inferred data type
         return predictions.astype(self.dtype_)
