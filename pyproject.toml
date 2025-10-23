@@ -1,8 +1,8 @@
 [project]
 name = "benson"
-version = "0.1.4"
+version = "0.1.5"
 authors = [
-    {name = "Krv Analytics", email = "team@krv.ai"}
+    {name = "Krv Labs", email = "team@krv.ai"}
 ]
 description = "A multiverse data cleaning tool for agent pickup."
 readme = "README.md"
@@ -28,6 +28,7 @@ dect = { git = "https://github.com/aidos-lab/dect.git" }
 
 [dependency-groups]
 dev = [
+    "black>=25.9.0",
     "ipykernel>=6.29.5",
     "pdoc>=15.0.1",
     "pytest>=8.3.5",
