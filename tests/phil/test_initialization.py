@@ -20,15 +20,11 @@ class TestPhilInitializationBehavior:
             "_configure_magic_method",
             return_value=(mock_config, mock_magic),
         )
-        mocker.patch.object(
-            Phil, "_configure_param_grid", return_value=mock_param_grid
-        )
+        mocker.patch.object(Phil, "_configure_param_grid", return_value=mock_param_grid)
 
         phil = Phil()
 
-        Phil._configure_magic_method.assert_called_once_with(
-            magic="ECT", config=None
-        )
+        Phil._configure_magic_method.assert_called_once_with(magic="ECT", config=None)
         Phil._configure_param_grid.assert_called_once_with("default")
 
         assert phil.samples == 30

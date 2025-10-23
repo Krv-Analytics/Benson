@@ -46,12 +46,8 @@ class ImputationConfig(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
     methods: List[str] = Field(..., description="Names of imputation methods")
-    modules: List[str] = Field(
-        ..., description="Python modules containing methods"
-    )
-    grids: List[ParameterGrid] = Field(
-        ..., description="Parameter grids for methods"
-    )
+    modules: List[str] = Field(..., description="Python modules containing methods")
+    grids: List[ParameterGrid] = Field(..., description="Parameter grids for methods")
 
 
 class PreprocessingConfig(BaseModel):

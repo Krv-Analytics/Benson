@@ -183,9 +183,7 @@ class TestPhilImputationBehavior:
         assert len(result) > 0
         assert isinstance(result[0], np.ndarray)
         mock_identify.assert_called_once_with(df)
-        mock_configure.assert_called_once_with(
-            "default", ["cat_col"], ["num_col"]
-        )
+        mock_configure.assert_called_once_with("default", ["cat_col"], ["num_col"])
         mock_create.assert_called_once()
         mock_select.assert_called_once()
         mock_apply.assert_called_once()

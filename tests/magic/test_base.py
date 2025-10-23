@@ -30,9 +30,7 @@ class TestMagic:
         magic.configure(**test_params)
 
         # Verify the configuration was applied correctly
-        assert hasattr(
-            magic, "config"
-        ), "Configure method should store parameters"
+        assert hasattr(magic, "config"), "Configure method should store parameters"
         assert (
             magic.config == test_params
         ), "Configure method should store the provided parameters"

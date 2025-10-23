@@ -71,9 +71,7 @@ class TestECT:
             seed=42,
         )
         ect = ECT(config)
-        X = [
-            np.random.rand(100, D) for _ in range(B)
-        ]  # 5 batches of 100 2D points
+        X = [np.random.rand(100, D) for _ in range(B)]  # 5 batches of 100 2D points
 
         # Act
         result = ect.generate(X)
@@ -101,9 +99,7 @@ class TestECT:
             seed=42,
         )
         ect = ECT(config)
-        X = [
-            np.random.rand(100, D) for _ in range(5)
-        ]  # 5 batches of 100 3D points
+        X = [np.random.rand(100, D) for _ in range(5)]  # 5 batches of 100 3D points
 
         # Act
         result = ect.generate(X)
@@ -168,9 +164,7 @@ class TestECT:
         X = np.random.rand(10, 2)  # Single numpy array, not in a list
 
         # Act & Assert
-        with pytest.raises(
-            ValueError, match="Input must be a list of numpy arrays"
-        ):
+        with pytest.raises(ValueError, match="Input must be a list of numpy arrays"):
             ect.generate(X)
 
     def test_convert_to_tensor(self):

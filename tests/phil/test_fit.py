@@ -30,9 +30,7 @@ class TestPhilFitBehavior:
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mocker.patch.object(
-            phil, "_get_imputed_columns", return_value=["A", "B"]
-        )
+        mocker.patch.object(phil, "_get_imputed_columns", return_value=["A", "B"])
         mock_pipeline.named_steps = {"imputer": mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 
@@ -65,9 +63,7 @@ class TestPhilFitBehavior:
 
         # Setup mocks
         mocker.patch.object(phil, "impute", return_value=mock_representations)
-        mocker.patch.object(
-            phil, "generate_descriptors", return_value=mock_descriptors
-        )
+        mocker.patch.object(phil, "generate_descriptors", return_value=mock_descriptors)
         mocker.patch.object(phil, "_select_representative", return_value=0)
 
         # Create a mock imputer pipeline
@@ -95,9 +91,7 @@ class TestPhilFitBehavior:
         mocker.patch.object(
             phil,
             "impute",
-            side_effect=ValueError(
-                "No missing values found in the input DataFrame."
-            ),
+            side_effect=ValueError("No missing values found in the input DataFrame."),
         )
 
         with pytest.raises(
@@ -126,9 +120,7 @@ class TestPhilFitBehavior:
         # Create a mock for selected_imputers
         mock_pipeline = mocker.MagicMock()
         mock_imputer = mocker.MagicMock()
-        mocker.patch.object(
-            phil, "_get_imputed_columns", return_value=["A", "B"]
-        )
+        mocker.patch.object(phil, "_get_imputed_columns", return_value=["A", "B"])
         mock_pipeline.named_steps = {"imputer": mock_imputer}
         phil.selected_imputers = [mock_pipeline]
 

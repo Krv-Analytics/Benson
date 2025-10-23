@@ -29,14 +29,10 @@ class TestPhilConfigBehavior:
         class MockInvalidBaseModel(BaseModel):
             field: str = "invalid"
 
-        with pytest.raises(
-            ValueError, match="Invalid parameter grid configuration."
-        ):
+        with pytest.raises(ValueError, match="Invalid parameter grid configuration."):
             Phil._configure_param_grid(MockInvalidBaseModel())
 
-        with pytest.raises(
-            ValueError, match="Invalid parameter grid configuration."
-        ):
+        with pytest.raises(ValueError, match="Invalid parameter grid configuration."):
             Phil._configure_param_grid({"invalid": "data"})
 
         with pytest.raises(ValueError, match="Invalid parameter grid type."):

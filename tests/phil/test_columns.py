@@ -11,9 +11,7 @@ class TestPhilColumnBehavior:
     def test_identifies_mixed_data_types_correctly_with_boolean(self):
         data = {
             "string_col": ["apple", "banana", "cherry"],
-            "category_col": pd.Series(["dog", "cat", "mouse"]).astype(
-                "category"
-            ),
+            "category_col": pd.Series(["dog", "cat", "mouse"]).astype("category"),
             "integer_col": [10, 20, 30],
             "float_col": [0.1, 0.2, 0.3],
             "boolean_col": [True, False, True],
@@ -32,9 +30,7 @@ class TestPhilColumnBehavior:
     def test_identifies_column_types_correctly(self):
         data = {
             "string_col": ["apple", "banana", "cherry"],
-            "category_col": pd.Series(["dog", "cat", "mouse"]).astype(
-                "category"
-            ),
+            "category_col": pd.Series(["dog", "cat", "mouse"]).astype("category"),
             "integer_col": [10, 20, 30],
             "float_col": [0.1, 0.2, 0.3],
         }
